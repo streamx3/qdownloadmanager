@@ -24,7 +24,11 @@ Canvas {
             c.beginPath(); c.arc(12,12,4,0,Math.PI*2); c.stroke()
             for(let a=0;a<8;a++){const t=a*Math.PI/4; line([12+7*Math.cos(t),12+7*Math.sin(t),12+10*Math.cos(t),12+10*Math.sin(t)])}
         }
-        else if (name === "moon") { c.beginPath(); c.arc(12,12,8,-Math.PI/2,Math.PI/2); c.arc(12,9,5,Math.PI/2,-Math.PI/2,true); c.closePath(); c.stroke() }
+        else if (name === "moon") {
+            c.beginPath(); c.arc(12,12,8,0,Math.PI*1.5)
+            c.bezierCurveTo(8,10,14,16,20,12)
+            c.closePath(); c.stroke()
+        }
         else if (name === "pause") { line([8,5,8,19]); line([16,5,16,19]) }
         else if (name === "play") line([8,5,19,12,8,19,8,5])
         else if (name === "back") { line([14,5,7,12,14,19]); line([7,12,21,12]) }

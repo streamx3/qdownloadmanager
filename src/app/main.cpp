@@ -6,9 +6,9 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QDir>
+#include <QIcon>
 #include <QLockFile>
 #include <QMenu>
-#include <QPainter>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -47,17 +47,9 @@ int main(int argc, char *argv[])
     });
     if (!server.listen(LocalEndpoint::name(directory))) controller.setServerError("Could not listen for Chrome: " + server.errorString());
 
-    QPixmap pixmap(64, 64);
-    pixmap.fill(Qt::transparent);
-    QPainter painter(&pixmap);
-    painter.setRenderHint(QPainter::Antialiasing);
-    painter.setPen(QPen(QColor("#9184d9"), 5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-    painter.drawLine(32, 12, 32, 42);
-    painter.drawLine(20, 30, 32, 42);
-    painter.drawLine(44, 30, 32, 42);
-    painter.drawLine(13, 52, 51, 52);
-    painter.end();
-    QIcon icon(pixmap);
+    QIcon icon;
+    for (const auto size : {16, 32, 48, 64, 128, 256, 512, 1024})
+        icon.addFile(QString(":/icons/download-helper-%1.png").arg(size), QSize(size, size));
     app.setWindowIcon(icon);
 
     WindowChrome windowChrome;

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(QDownloadManager VERSION 0.3.2 LANGUAGES CXX)
+project(QDownloadManager VERSION 0.3.3 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -40,9 +40,23 @@ set(QDM_QML_FILES qml/Main.qml qml/Theme.qml qml/ActionButton.qml qml/Icon.qml q
 qt_add_qml_module(qdownloadmanager URI DownloadHelper VERSION 1.0 QML_FILES ${QDM_QML_FILES})
 qt_add_resources(qdownloadmanager dr_stein_license PREFIX "/licenses/dr_stein" BASE third_party/dr_stein
     FILES third_party/dr_stein/LICENSE)
+set(QDM_ICON_FILES)
+foreach(icon_size 16 32 48 64 128 256 512 1024)
+    list(APPEND QDM_ICON_FILES assets/icons/download-helper-${icon_size}.png)
+endforeach()
+qt_add_resources(qdownloadmanager app_icons PREFIX "/icons" BASE assets/icons FILES ${QDM_ICON_FILES})
+if(APPLE)
+    set(QDM_MAC_ICON "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/download-helper.icns")
+    set_source_files_properties("${QDM_MAC_ICON}" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+    target_sources(qdownloadmanager PRIVATE "${QDM_MAC_ICON}")
+elseif(WIN32)
+    configure_file(assets/icons/app-icon.rc.in generated/app-icon.rc @ONLY)
+    target_sources(qdownloadmanager PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/app-icon.rc")
+endif()
 set_target_properties(qdownloadmanager PROPERTIES
     MACOSX_BUNDLE_BUNDLE_NAME "Download Helper"
     MACOSX_BUNDLE_GUI_IDENTIFIER "cc.qdownloadmanager.app"
+    MACOSX_BUNDLE_ICON_FILE "download-helper.icns"
     MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
     MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
     WIN32_EXECUTABLE TRUE)

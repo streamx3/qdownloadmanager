@@ -126,6 +126,22 @@ private slots:
         QCOMPARE(appearance.value("resolvedScheme").toString(), dark ? "dark" : "light");
         QCOMPARE(QColor(appearance.value("colors").toObject().value("bg").toString()), window->property("themeBackground").value<QColor>());
     }
+    void headerGlyphsAreCentered() {
+        backend->setColorScheme("light"); // Exercise the crescent as well as + and gear.
+        QTest::qWait(60);
+        for (const auto &name : {"addLinkButton", "themeToggle", "settingsButton"}) {
+            auto button = item(name); QVERIFY(button);
+            auto glyph = findItem(button, "actionIcon"); QVERIFY(glyph);
+            const auto buttonCenter = button->mapToScene(QPointF(button->width() / 2, button->height() / 2));
+            const auto glyphCenter = glyph->mapToScene(QPointF(glyph->width() / 2, glyph->height() / 2));
+            QVERIFY2(QLineF(buttonCenter, glyphCenter).length() < 0.5, name);
+        }
+        const auto captureDir = qEnvironmentVariable("QDM_UI_CAPTURE_DIR");
+        if (!captureDir.isEmpty()) {
+            QVERIFY(QDir().mkpath(captureDir));
+            QVERIFY(window->grabWindow().save(QDir(captureDir).filePath("header-glyphs.png")));
+        }
+    }
     void titleBarHasRoomForNativeControlsAndFallbackPersists() {
         auto bar = item("titleBar"); QVERIFY(bar);
         QVERIFY(bar->height() >= 48);

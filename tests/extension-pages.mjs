@@ -38,6 +38,7 @@ try {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(`chrome-extension://${id}/options.html`);
+  await page.waitForFunction(() => document.querySelector("header img.mark")?.naturalWidth === 128);
   await page.waitForFunction(() => document.documentElement.dataset.palette === "teal");
   await page.waitForFunction(() => document.querySelector("#sites").value.includes("joyreactor.cc"));
   const initial = await page.evaluate(() => chrome.storage.local.get(["sites", "imageHosts", "mode"]));
@@ -83,6 +84,7 @@ try {
   popup.on("pageerror", error => errors.push(error.message));
   await popup.setViewportSize({ width: 340, height: 440 });
   await popup.goto(`chrome-extension://${id}/popup.html`);
+  await popup.waitForFunction(() => document.querySelector("header img.mark")?.naturalWidth === 128);
   await popup.waitForFunction(() => document.querySelector("#status").textContent === "App connected");
   const backgrounds = {
     blurple: { dark: "rgb(22, 24, 38)", light: "rgb(238, 240, 247)" },

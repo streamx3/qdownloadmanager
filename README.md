@@ -118,6 +118,13 @@ it with its own preference. This requires app 0.3.2+ and extension 0.2.4+. Befor
 the first theme sync, the extension uses blurple/dark. There is no separate
 extension theme selector. The compact image overlay retains its current appearance.
 
+App 0.3.3 includes a teal download arrow on a dark squircle as a proper macOS
+bundle icon, as well as the runtime Qt icon. This makes it available in Finder,
+the Dock, and the app switcher. Extension 0.2.5 uses the same artwork for its
+toolbar, extension manager, and page headers. Source and regeneration details
+are in [assets/icons](assets/icons/README.md). The header's +, moon, and settings
+glyphs are centered within their buttons, and the moon uses a corrected crescent.
+
 ### Updating an already loaded extension
 
 After editing/updating the extension folder, click **Reload** on Download Helper
