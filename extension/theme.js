@@ -2,7 +2,10 @@ import { palettes } from "./palettes.js";
 import { DEFAULT_APPEARANCE, validAppearance } from "./appearance.js";
 
 export function themeColors(appearance, systemDark = false) {
-  const { palette, colorScheme } = validAppearance(appearance) || DEFAULT_APPEARANCE;
+  const validated = validAppearance(appearance) || DEFAULT_APPEARANCE;
+  const { palette, colorScheme } = validated;
+  if (validated.colors) return { palette, dark: validated.resolvedScheme === "dark", colors: validated.colors };
+  // Compatibility fallback before a rendered theme has been received from Qt.
   const p = palettes[palette];
   const dark = colorScheme === "dark" || (colorScheme === "system" && systemDark);
   const g = dark ? p.dark : p.light;
@@ -17,9 +20,10 @@ export function themeColors(appearance, systemDark = false) {
 }
 
 // Both extension pages follow the app. Cache survives app shutdown and worker
-// restarts; System continues to follow the OS even while the app is closed.
+// restarts. A rendered snapshot follows Qt's scheme, including in System mode;
+// offline pages keep that exact appearance until the app sends another one.
 export function startTheme(onStatus = () => {}) {
-  let appearance = DEFAULT_APPEARANCE, changed = false, pending;
+  let appearance = DEFAULT_APPEARANCE, changed = false, pending, status;
   const media = matchMedia("(prefers-color-scheme: dark)");
   function apply() {
     const { palette, dark, colors } = themeColors(appearance, media.matches);
@@ -27,6 +31,12 @@ export function startTheme(onStatus = () => {}) {
     document.documentElement.style.colorScheme = dark ? "dark" : "light";
     document.documentElement.dataset.palette = palette;
     document.documentElement.dataset.scheme = dark ? "dark" : "light";
+    const hint = document.getElementById("themeStatus");
+    if (hint) {
+      if (status?.online && !validAppearance(status.appearance)?.colors) hint.textContent = "Restart the updated desktop app to share its displayed theme with Chrome.";
+      else if (appearance.colors) hint.textContent = `${status?.online ? "Desktop theme" : "Last desktop theme"}: ${palette[0].toUpperCase() + palette.slice(1)} · ${dark ? "Dark" : "Light"}. Change it in the app’s Settings → Appearance.`;
+      else hint.textContent = "Open the updated desktop app to use its theme here. Appearance is controlled in the app’s settings.";
+    }
   }
   apply();
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -44,16 +54,17 @@ export function startTheme(onStatus = () => {}) {
     if (!pending) pending = chrome.runtime.sendMessage({ type: "status" })
       .catch(error => ({ online: false, error: error.message }))
       .then(state => {
+        status = state;
         const updated = validAppearance(state?.appearance);
-        if (updated) { changed = true; appearance = updated; apply(); }
+        if (updated) { changed = true; appearance = updated; }
+        apply();
         onStatus(state);
         return state;
       }).finally(() => { pending = null; });
     return pending;
   }
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
-  const timer = setInterval(() => { if (!document.hidden) refresh(); }, 3000);
-  window.addEventListener("pagehide", () => clearInterval(timer), { once: true });
+  setInterval(() => { if (!document.hidden) refresh(); }, 3000);
   refresh();
   return refresh;
 }

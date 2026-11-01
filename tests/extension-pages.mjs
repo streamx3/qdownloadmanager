@@ -2,8 +2,12 @@
 // Native Messaging boundary is faked; permissions, storage, worker and pages run
 // in Chrome. Set QDM_CHROME and QDM_PLAYWRIGHT_MODULE as for browser-ui.mjs.
 import assert from "node:assert/strict";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { themeColors } from "../extension/theme.js";
+const qtThemes = process.env.QDM_QT_THEMES ? JSON.parse(await readFile(process.env.QDM_QT_THEMES, "utf8")) : null;
+const renderedTheme = (palette, colorScheme) => qtThemes?.[`${palette}-${colorScheme}`]
+  || { palette, colorScheme, resolvedScheme: colorScheme, colors: themeColors({ palette, colorScheme }).colors };
 const { chromium } = await import(process.env.QDM_PLAYWRIGHT_MODULE || "playwright");
 const context = await chromium.launchPersistentContext("", {
   executablePath: process.env.QDM_CHROME, headless: true,
@@ -89,12 +93,15 @@ try {
   if (process.env.QDM_CAPTURE_DIR) await mkdir(process.env.QDM_CAPTURE_DIR, { recursive: true });
   for (const [palette, schemes] of Object.entries(backgrounds)) {
     for (const [colorScheme, background] of Object.entries(schemes)) {
-      await worker.evaluate(appearance => { appAppearance = appearance; }, { palette, colorScheme });
+      const appearance = renderedTheme(palette, colorScheme);
+      await worker.evaluate(appearance => { appAppearance = appearance; }, appearance);
       await popup.getByRole("button", { name: "Check connection" }).click();
       for (const target of [page, popup]) {
         await target.waitForFunction(({ palette, colorScheme }) => document.documentElement.dataset.palette === palette
           && document.documentElement.dataset.scheme === colorScheme, { palette, colorScheme });
         assert.equal(await target.evaluate(() => getComputedStyle(document.body).backgroundColor), background);
+        assert.deepEqual(await target.evaluate(roles => Object.fromEntries(roles.map(role => [role,
+          getComputedStyle(document.documentElement).getPropertyValue(`--${role}`).trim()])) , Object.keys(appearance.colors)), appearance.colors);
       }
       if (process.env.QDM_CAPTURE_DIR && palette === "teal") {
         await page.screenshot({ path: `${process.env.QDM_CAPTURE_DIR}/options-${colorScheme}.png`, fullPage: true });
@@ -103,22 +110,29 @@ try {
     }
   }
   // Polling picks up an app change without clicking Connect or reopening pages.
-  await worker.evaluate(() => { appAppearance = { palette: "blue", colorScheme: "system" }; });
+  const systemDark = { ...renderedTheme("blue", "dark"), colorScheme: "system" };
+  await worker.evaluate(appearance => { appAppearance = appearance; }, systemDark);
   await popup.emulateMedia({ colorScheme: "light" });
-  await popup.waitForFunction(() => document.documentElement.dataset.palette === "blue" && document.documentElement.dataset.scheme === "light");
+  await popup.waitForFunction(() => document.documentElement.dataset.palette === "blue" && document.documentElement.dataset.scheme === "dark");
+  assert.equal(await popup.evaluate(() => getComputedStyle(document.body).backgroundColor), backgrounds.blue.dark,
+    "Qt dark must win even when Chrome prefers light");
+  // An OS transition in Qt updates cached colors even when the preference stays System.
   await popup.emulateMedia({ colorScheme: "dark" });
-  await popup.waitForFunction(() => document.documentElement.dataset.scheme === "dark");
+  await worker.evaluate(appearance => { appAppearance = appearance; }, { ...renderedTheme("blue", "light"), colorScheme: "system" });
+  await popup.waitForFunction(() => document.documentElement.dataset.scheme === "light");
   await worker.evaluate(() => { appOnline = false; });
   await popup.reload();
   await popup.waitForFunction(() => document.querySelector("#status").textContent === "App unavailable");
   assert.equal(await popup.getAttribute("html", "data-palette"), "blue");
-  await popup.emulateMedia({ colorScheme: "light" });
+  await popup.emulateMedia({ colorScheme: "dark" });
   await popup.waitForFunction(() => document.documentElement.dataset.scheme === "light");
   // An older app's hello remains compatible and preserves the cached theme.
   await worker.evaluate(() => { appOnline = true; appAppearance = undefined; });
   await popup.getByRole("button", { name: "Connect", exact: true }).click();
   await popup.waitForFunction(() => document.querySelector("#status").textContent === "App connected");
   assert.equal(await popup.getAttribute("html", "data-palette"), "blue");
+  await page.bringToFront();
+  await page.waitForFunction(() => document.querySelector("#themeStatus").textContent.includes("Restart the updated desktop app"));
   assert.deepEqual(errors, []);
-  console.log("PASS: real extension saves, Chrome permission pattern validation, denied grants preserve settings, eight themes, live sync, system/offline/older-app fallback");
+  console.log(`PASS: real extension saves, permission patterns, eight ${qtThemes ? "Qt-rendered" : "fixture"} themes, exact color sync, Qt-over-Chrome scheme, offline/older-app fallback`);
 } finally { await context.close(); }

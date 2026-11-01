@@ -61,6 +61,11 @@ void AppController::setColorScheme(const QString &value) {
     m_settings.setValue("ui/colorScheme", value); emit settingsChanged();
 }
 void AppController::setCustomTitleBar(bool value) { m_settings.setValue("ui/customTitleBar", value); emit settingsChanged(); }
+void AppController::setRenderedTheme(const QVariantMap &value) {
+    if (value == m_renderedTheme) return;
+    m_renderedTheme = value;
+    emit renderedThemeChanged();
+}
 
 QString AppController::saveFolder() const
 {
@@ -206,10 +211,18 @@ QJsonObject AppController::handle(const QJsonObject &request, const QString &own
 {
     if (!Protocol::validRequest(request)) return Protocol::failure(request, "invalid_request", "Expected protocol v1 and a request ID.");
     const auto type = request.value("type").toString();
-    if (type == "hello" || type == "status")
+    if (type == "hello" || type == "status") {
+        QJsonObject appearance{{"palette", themePalette()}, {"colorScheme", colorScheme()}};
+        // QML provides the same semantic colors it uses to draw the window.
+        // Never send a stale snapshot while a settings binding is updating.
+        if (m_renderedTheme.value("palette").toString() == themePalette()
+            && m_renderedTheme.value("colorScheme").toString() == colorScheme()) {
+            appearance = QJsonObject::fromVariantMap(m_renderedTheme);
+        }
         return Protocol::success(request, {{"appVersion", Identity::Version}, {"accepting", accepting() && setupComplete()},
                                           {"setupComplete", setupComplete()}, {"active", m_downloads.active().size()},
-                                          {"appearance", QJsonObject{{"palette", themePalette()}, {"colorScheme", colorScheme()}}}});
+                                          {"appearance", appearance}});
+    }
     if (!setupComplete()) return Protocol::failure(request, "setup_required", "Finish setup in the desktop app first.");
     return m_downloads.handle(request, owner);
 }

@@ -113,7 +113,10 @@ def main():
                 assert time.monotonic() < deadline, hello
                 time.sleep(0.1)
             assert hello["setupComplete"] and hello["accepting"], hello
-            assert hello["appearance"] == {"palette": "blurple", "colorScheme": "dark"}, hello
+            appearance = hello["appearance"]
+            assert appearance["palette"] == "blurple" and appearance["colorScheme"] == "dark", appearance
+            assert appearance["resolvedScheme"] == "dark" and appearance["colors"]["bg"] == "#161826", appearance
+            assert len(appearance["colors"]) == 12, appearance
             print("PASS: bridge connects when the app starts")
             first = require_ok(bridge.request("begin", url="https://joyreactor.cc/image.svg", name="../../image.svg", total=len(data)))["jobId"]
             second = require_ok(bridge.request("begin", url="https://joyreactor.com/image.svg", name="second.svg", total=len(data)))["jobId"]

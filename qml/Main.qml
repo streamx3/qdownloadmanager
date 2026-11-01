@@ -35,6 +35,7 @@ ApplicationWindow {
     palette.highlightedText: Theme.accentText
     Binding { target: Theme; property: "paletteName"; value: backend.themePalette }
     Binding { target: Theme; property: "colorScheme"; value: backend.colorScheme }
+    Binding { target: backend; property: "renderedTheme"; value: Theme.renderedTheme }
     function measureChrome() { if (chromeReady && customChrome) chromeMetrics = windowChrome.metrics(window) }
     Component.onCompleted: {
         if (customChrome) windowChrome.attach(window)

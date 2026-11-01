@@ -111,17 +111,24 @@ Windows Snap Layouts on hovering our maximize button are not implemented.
 The MIT-licensed theme and window code provenance is recorded in
 [third_party/dr_stein](third_party/dr_stein/README.md). Dr Stein itself is unchanged
 and is not a build dependency. The extension's popup and settings page follow the
-desktop app's palette and scheme. Open extension pages check for changes every
-three seconds and keep the last received theme when the app is closed. System
-mode continues to follow the OS. This requires app 0.3.1+ and extension 0.2.3+;
-before the first theme sync, the extension uses blurple/dark. The compact image
-overlay retains its current appearance.
+desktop app's displayed colors and resolved light/dark mode. Open extension pages
+check for changes every three seconds and keep the exact last received theme when
+the app is closed. Qt decides the scheme in System mode; Chrome does not override
+it with its own preference. This requires app 0.3.2+ and extension 0.2.4+. Before
+the first theme sync, the extension uses blurple/dark. There is no separate
+extension theme selector. The compact image overlay retains its current appearance.
 
 ### Updating an already loaded extension
 
 After editing/updating the extension folder, click **Reload** on Download Helper
 at `chrome://extensions`, then refresh the website page. The desktop app does
 not need rebuilding for extension-only changes.
+
+Extension 0.2.4 with app 0.3.2 uses the actual color values exported by the Qt UI.
+This prevents a scheme mismatch when Qt and Chrome resolve System differently,
+and avoids recalculating the app's theme in the browser. Restart the rebuilt app
+and reload the extension to enable this. The settings page indicates when an
+older running app needs a restart before its theme can be received.
 
 Extension 0.2.3 fixes saving newly added domains: host access requests now use
 separate HTTP and HTTPS patterns matching the optional manifest declarations.
@@ -244,6 +251,10 @@ denied-permission handling, all eight palette/scheme combinations, live theme
 sync, and offline/older-app behavior. The native app boundary and a denied prompt
 are controlled fixtures; it does not click Chrome's native permission dialog.
 Set `QDM_CAPTURE_DIR` to save light/dark popup and settings screenshots.
+To compare against actual Qt-rendered themes, run CTest with
+`QDM_UI_CAPTURE_DIR=/tmp/qdm-qt-themes`, then run `extension-pages.mjs` with
+`QDM_QT_THEMES=/tmp/qdm-qt-themes/themes.json`. The browser checks every exported
+color and verifies that Qt's scheme wins when Chrome prefers the opposite mode.
 
 For a browser smoke test:
 

@@ -9,6 +9,7 @@ class AppController : public QObject {
     Q_PROPERTY(QString themePalette READ themePalette WRITE setThemePalette NOTIFY settingsChanged)
     Q_PROPERTY(QString colorScheme READ colorScheme WRITE setColorScheme NOTIFY settingsChanged)
     Q_PROPERTY(bool customTitleBar READ customTitleBar WRITE setCustomTitleBar NOTIFY settingsChanged)
+    Q_PROPERTY(QVariantMap renderedTheme READ renderedTheme WRITE setRenderedTheme NOTIFY renderedThemeChanged)
     Q_PROPERTY(QString saveFolder READ saveFolder NOTIFY settingsChanged)
     Q_PROPERTY(bool setupComplete READ setupComplete NOTIFY settingsChanged)
     Q_PROPERTY(bool accepting READ accepting WRITE setAccepting NOTIFY settingsChanged)
@@ -34,6 +35,8 @@ public:
     QString themePalette() const;
     QString colorScheme() const;
     bool customTitleBar() const;
+    QVariantMap renderedTheme() const { return m_renderedTheme; }
+    void setRenderedTheme(const QVariantMap &value);
     void setThemePalette(const QString &value);
     void setColorScheme(const QString &value);
     void setCustomTitleBar(bool value);
@@ -78,6 +81,7 @@ public:
     void showMessage(const QString &message);
 signals:
     void settingsChanged();
+    void renderedThemeChanged();
     void connectionChanged();
     void downloadsChanged();
     void messageChanged();
@@ -90,4 +94,5 @@ private:
     DownloadListModel m_activeModel, m_recentModel;
     QString m_dataDirectory, m_serverError, m_message;
     int m_browserCount = 0;
+    QVariantMap m_renderedTheme;
 };

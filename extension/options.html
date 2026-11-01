@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Download Helper settings</title><link rel="stylesheet" href="ui.css"></head>
 <body class="options">
   <header><span class="mark" aria-hidden="true">↓</span><h1>Download Helper settings</h1></header>
-  <p class="theme-hint">Appearance follows the desktop app. Change it in the app’s Settings → Appearance.</p>
+  <p class="theme-hint" id="themeStatus" role="status">Appearance follows the desktop app. Change it in the app’s Settings → Appearance.</p>
   <form id="settings">
     <section class="card"><h2>Your websites</h2><p>Download buttons appear on images on these domains and their subdomains. Avatars and tiny images are skipped.</p><label for="sites">Enabled websites · one domain per line</label><textarea id="sites" spellcheck="false" placeholder="joyreactor.cc&#10;joyreactor.com&#10;reddit.com"></textarea>
     <label for="imageHosts">Additional image hosts · one domain per line</label><textarea id="imageHosts" spellcheck="false" placeholder="reactor.cc&#10;i.redd.it&#10;preview.redd.it&#10;external-preview.redd.it"></textarea><small>Use this for image CDNs on a different domain. Chrome will ask for access when you add a new domain.</small></section>

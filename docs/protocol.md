@@ -48,9 +48,20 @@ protocol v1 compatible with older apps and extensions. Extension 0.2.3 validates
 and caches these preferences in local extension storage. Its popup and options
 page poll status every three seconds while visible and follow storage changes
 immediately. The last valid theme remains available offline; missing/invalid
-fields from older apps do not erase it. System appearance is resolved locally
-using the browser's OS color-scheme preference. Appearance is read-only over the
-bridge; the desktop app remains the settings authority.
+fields from older apps do not erase it. Appearance is read-only over the bridge;
+the desktop app remains the settings authority.
+
+App 0.3.2 additionally exports `resolvedScheme: "dark" | "light"` and `colors`
+directly from the rendered QML theme. Color roles are `bg`, `surface`, `text`,
+`line`, `muted`, `dim`, `inset`, `accent`, `accent-text`, `accent-dark`, `hover`,
+and `danger`, each a six-digit hex color. Extension 0.2.4 applies these values
+without recomputing them from a local palette or Chrome's OS preference. Even in
+System mode, the Qt window's resolved scheme is authoritative. The full snapshot
+is cached; changes to resolved scheme or color values refresh the cache even when
+palette and preference names stay the same. Offline pages keep the last Qt
+snapshot. Only legacy responses without a snapshot use the browser's local
+palette/scheme fallback. An older connected app is identified in options with a
+restart hint. The wire protocol version remains 1.
 
 `filesStatus` checks sanitized names in the currently selected save folder,
 without creating jobs or reading file contents. It works while new downloads are

@@ -2,6 +2,8 @@
 #include "platform/windowchrome.h"
 #include <QApplication>
 #include <QDir>
+#include <QFile>
+#include <QJsonDocument>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickItem>
@@ -82,6 +84,7 @@ private slots:
         const QStringList light{"#e9f3f4", "#eef0f7", "#f2f2f7", "#ededed"};
         const auto captureDir = qEnvironmentVariable("QDM_UI_CAPTURE_DIR");
         if (!captureDir.isEmpty()) QVERIFY(QDir().mkpath(captureDir));
+        QJsonObject capturedThemes;
         for (int at = 0; at < palettes.size(); ++at) {
             backend->setThemePalette(palettes[at]);
             for (const auto &scheme : {QString("dark"), QString("light")}) {
@@ -92,8 +95,21 @@ private slots:
                 const auto image = window->grabWindow();
                 QVERIFY(!image.isNull());
                 QCOMPARE(image.pixelColor(2, qRound(100 * window->devicePixelRatio())), expected);
+                const auto appearance = backend->handle({{"v", 1}, {"id", "theme"}, {"type", "hello"}}, "browser").value("appearance").toObject();
+                QCOMPARE(appearance.value("palette").toString(), palettes[at]);
+                QCOMPARE(appearance.value("colorScheme").toString(), scheme);
+                QCOMPARE(appearance.value("resolvedScheme").toString(), scheme);
+                const auto colors = appearance.value("colors").toObject();
+                QCOMPARE(colors.value("bg").toString(), expected.name());
+                QCOMPARE(colors.size(), 12);
+                capturedThemes.insert(palettes[at] + '-' + scheme, appearance);
                 if (!captureDir.isEmpty()) QVERIFY(image.save(QDir(captureDir).filePath(palettes[at] + '-' + scheme + ".png")));
             }
+        }
+        if (!captureDir.isEmpty()) {
+            QFile file(QDir(captureDir).filePath("themes.json"));
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            QVERIFY(file.write(QJsonDocument(capturedThemes).toJson()) > 0);
         }
         click("backButton"); QTRY_VERIFY(!window->property("settingsOpen").toBool());
     }
@@ -105,6 +121,10 @@ private slots:
         // Some offscreen plugins report Light regardless of the requested override.
         const bool dark = QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
         QTRY_COMPARE(window->property("darkTheme").toBool(), dark);
+        const auto appearance = backend->handle({{"v", 1}, {"id", "theme"}, {"type", "status"}}, "browser").value("appearance").toObject();
+        QCOMPARE(appearance.value("colorScheme").toString(), "system");
+        QCOMPARE(appearance.value("resolvedScheme").toString(), dark ? "dark" : "light");
+        QCOMPARE(QColor(appearance.value("colors").toObject().value("bg").toString()), window->property("themeBackground").value<QColor>());
     }
     void titleBarHasRoomForNativeControlsAndFallbackPersists() {
         auto bar = item("titleBar"); QVERIFY(bar);

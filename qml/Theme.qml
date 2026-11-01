@@ -66,4 +66,18 @@ QtObject {
     readonly property color danger: dark ? "#e37272" : "#b23a3a"
     readonly property int radius: 8
     readonly property string fontFamily: Qt.fontFamilies().indexOf("Inter") >= 0 ? "Inter" : Application.font.family
+
+    // Share the rendered Qt theme, including Qt's resolution of System mode.
+    // Chrome must not independently choose a different scheme or color mapping.
+    readonly property var renderedTheme: ({
+        palette: paletteName,
+        colorScheme: colorScheme,
+        resolvedScheme: dark ? "dark" : "light",
+        colors: {
+            bg: String(background), surface: String(surface), text: String(text), line: String(edge),
+            muted: String(muted), dim: String(dim), inset: String(inset), accent: String(accent),
+            "accent-text": String(accentText), "accent-dark": String(accentDark),
+            hover: String(hover), danger: String(danger)
+        }
+    })
 }
