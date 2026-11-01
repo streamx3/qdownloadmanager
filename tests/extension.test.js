@@ -26,6 +26,15 @@ test("JoyReactor original links beat displayed thumbnails without rewriting URLs
   assert.equal(rules.originalImage(img("/image.jpg", "/post/123"), "https://joyreactor.cc/"), "https://joyreactor.cc/image.jpg");
   assert.equal(rules.originalImage(img("blob:https://joyreactor.cc/id"), "https://joyreactor.cc/"), null);
 });
+test("optional permission requests use separate manifest-covered HTTP and HTTPS origins", () => {
+  assert.deepEqual(rules.permissionOrigins(["example.org", "localhost", "127.0.0.1", "example.org"]), [
+    "http://*.example.org/*", "https://*.example.org/*", "http://localhost/*", "https://localhost/*",
+    "http://127.0.0.1/*", "https://127.0.0.1/*"
+  ]);
+  const manifest = JSON.parse(readFileSync(new URL("../extension/manifest.json", import.meta.url)));
+  for (const origin of rules.permissionOrigins(["custom.example"]))
+    assert.ok(manifest.optional_host_permissions.includes(`${origin.split(":")[0]}://*/*`));
+});
 function fakeRuntime() {
   const ports = [];
   const runtime = { ports, connectNative() {

@@ -15,7 +15,7 @@ by `id` in the extension.
 
 | Type | Fields | Result |
 | --- | --- | --- |
-| `hello`, `status` | — | `appVersion`, `setupComplete`, `accepting`, `active` |
+| `hello`, `status` | — | `appVersion`, `setupComplete`, `accepting`, `active`, `appearance` |
 | `filesStatus` | `names` array (up to 64, at most 1024 characters each) | Ordered `files`: `{name, exists, busy, policy}` |
 | `begin` | `url`, optional `name`, `mime`, `total` | Browser transfer `jobId`, `state`, `name` |
 | `enqueue` | `url`, optional `name` | Native HTTP download `jobId`, `state`, `name` |
@@ -40,6 +40,17 @@ If another active job already targets that filename, `begin`/`enqueue` return
 A target appearing later can result in `skipped` when a queued job starts,
 a MIME-derived filename is learned, or `finish` commits. Clients must handle all
 three cases without treating the skip as failure.
+
+App 0.3.1 adds `appearance: {palette, colorScheme}` to `hello`/`status`, including
+before setup is complete. Palettes are `blurple`, `teal`, `blue`, and `grey`;
+schemes are `dark`, `light`, and `system`. This optional additive field keeps
+protocol v1 compatible with older apps and extensions. Extension 0.2.3 validates
+and caches these preferences in local extension storage. Its popup and options
+page poll status every three seconds while visible and follow storage changes
+immediately. The last valid theme remains available offline; missing/invalid
+fields from older apps do not erase it. System appearance is resolved locally
+using the browser's OS color-scheme preference. Appearance is read-only over the
+bridge; the desktop app remains the settings authority.
 
 `filesStatus` checks sanitized names in the currently selected save folder,
 without creating jobs or reading file contents. It works while new downloads are

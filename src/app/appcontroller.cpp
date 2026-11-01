@@ -208,7 +208,8 @@ QJsonObject AppController::handle(const QJsonObject &request, const QString &own
     const auto type = request.value("type").toString();
     if (type == "hello" || type == "status")
         return Protocol::success(request, {{"appVersion", Identity::Version}, {"accepting", accepting() && setupComplete()},
-                                          {"setupComplete", setupComplete()}, {"active", m_downloads.active().size()}});
+                                          {"setupComplete", setupComplete()}, {"active", m_downloads.active().size()},
+                                          {"appearance", QJsonObject{{"palette", themePalette()}, {"colorScheme", colorScheme()}}}});
     if (!setupComplete()) return Protocol::failure(request, "setup_required", "Finish setup in the desktop app first.");
     return m_downloads.handle(request, owner);
 }

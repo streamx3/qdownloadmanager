@@ -212,6 +212,15 @@ private slots:
             controller.setThemePalette("teal"); controller.setColorScheme("system"); controller.setCustomTitleBar(false);
             controller.setThemePalette("missing"); controller.setColorScheme("missing");
             QCOMPARE(controller.themePalette(), "teal"); QCOMPARE(controller.colorScheme(), "system");
+            // Available before setup, so extension pages can follow appearance immediately.
+            for (const auto &type : {"hello", "status"}) {
+                const auto appearance = controller.handle(request(type), "browser").value("appearance").toObject();
+                QCOMPARE(appearance.value("palette").toString(), "teal");
+                QCOMPARE(appearance.value("colorScheme").toString(), "system");
+            }
+            controller.setColorScheme("light");
+            QCOMPARE(controller.handle(request("hello"), "browser").value("appearance").toObject().value("colorScheme").toString(), "light");
+            controller.setColorScheme("system");
         }
         AppController restored(directory.path());
         QCOMPARE(restored.themePalette(), "teal"); QCOMPARE(restored.colorScheme(), "system");

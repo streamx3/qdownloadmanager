@@ -2,6 +2,7 @@ import "./rules.js";
 import { NativeClient } from "./native-client.js";
 import { ImageFetcher } from "./image-fetch.js";
 import { migrateSettings } from "./settings.js";
+import { cacheAppearance } from "./appearance.js";
 
 const rules = globalThis.QdmRules;
 const identity = fetch(chrome.runtime.getURL("identity.json")).then(response => response.json());
@@ -18,11 +19,17 @@ async function client() {
   return native;
 }
 async function config() { return chrome.storage.local.get(rules.DEFAULTS); }
-async function status() {
-  try {
-    const response = await (await client()).request("hello");
-    return { online: true, ...response };
-  } catch (error) { return { online: false, error: error.message }; }
+let statusTask;
+function status() {
+  if (!statusTask) statusTask = (async () => {
+    try {
+      const response = await (await client()).request("hello");
+      // A cache failure must not make a healthy app appear disconnected.
+      await cacheAppearance(chrome.storage.local, response.appearance).catch(console.warn);
+      return { online: true, ...response };
+    } catch (error) { return { online: false, error: error.message }; }
+  })().finally(() => { statusTask = null; });
+  return statusTask;
 }
 async function syncSites() {
   const settings = await config();

@@ -20,6 +20,11 @@
   function patterns(domains) {
     return domains.map(domain => `*://${domain === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(domain) ? domain : `*.${domain}`}/*`);
   }
+  function permissionOrigins(domains) {
+    // Each requested pattern must fit one manifest declaration. Chrome does not
+    // combine separate http://*/* and https://*/* grants to cover *://new-host/*.
+    return [...new Set(patterns(domains).flatMap(pattern => ["http", "https"].map(scheme => pattern.replace("*:", `${scheme}:`))))];
+  }
   function httpUrl(value, base) {
     try {
       const url = new URL(value, base);
@@ -82,5 +87,5 @@
     try { return decodeURIComponent(new URL(url).pathname.split("/").pop()) || "image"; }
     catch { return "image"; }
   }
-  globalThis.QdmRules = { DEFAULTS, normalizeHost, matchesHost, allowed, patterns, originalImage, filename };
+  globalThis.QdmRules = { DEFAULTS, normalizeHost, matchesHost, allowed, patterns, permissionOrigins, originalImage, filename };
 })();

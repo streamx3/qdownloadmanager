@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Download Helper",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Send images from your favorite sites to the local Download Helper app.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqwI2WhEvHZa/d9UCwuACpRUEFrcQe9D1mc74QJqBvzZ7lPD+Syl3jADy+Ks3+3qVWw81oEMlNcj2sJw9iRy109qGE+f2YHetWKtLHwX9fDcDuq8ftMGqjvRpZbSHdttfL0FXJaPAoT5+3OhlcSLXWOoBoeD4pmKmHO/40DSrqsQuVupAhQF11y0QgFdw5C/85EXvonF2QfH9C3RrfAHHwsbIY1BLksc4oV9nil7W2QxaMR0x3lnvH4i/bPTQc3njgpbCQeT7pIQp3GORppkfG+BHze13VgKxV6aCUk7iTUPLrlGa3HIt3lmDBjMvTiTs8fHR82emTpqPuyOES9ngCwIDAQAB",
   "minimum_chrome_version": "116",

@@ -110,14 +110,24 @@ Windows Snap Layouts on hovering our maximize button are not implemented.
 
 The MIT-licensed theme and window code provenance is recorded in
 [third_party/dr_stein](third_party/dr_stein/README.md). Dr Stein itself is unchanged
-and is not a build dependency. The extension's compact overlay retains its current
-appearance; these theme controls apply to the desktop app.
+and is not a build dependency. The extension's popup and settings page follow the
+desktop app's palette and scheme. Open extension pages check for changes every
+three seconds and keep the last received theme when the app is closed. System
+mode continues to follow the OS. This requires app 0.3.1+ and extension 0.2.3+;
+before the first theme sync, the extension uses blurple/dark. The compact image
+overlay retains its current appearance.
 
 ### Updating an already loaded extension
 
 After editing/updating the extension folder, click **Reload** on Download Helper
 at `chrome://extensions`, then refresh the website page. The desktop app does
 not need rebuilding for extension-only changes.
+
+Extension 0.2.3 fixes saving newly added domains: host access requests now use
+separate HTTP and HTTPS patterns matching the optional manifest declarations.
+It also themes the popup and settings page using the app's appearance preferences.
+Restart the rebuilt desktop app and reload the extension, then reopen its settings
+page to receive the theme. Existing site choices and transfer settings are retained.
 
 Extension 0.2.2 fixes stale image-button overlays left in already-open pages by
 extension reloads. It removes older overlays before installing the current one,
@@ -218,6 +228,7 @@ npm install --no-save playwright
 # Or point QDM_PLAYWRIGHT_MODULE to an existing playwright/index.mjs.
 QDM_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" node tests/browser-ui.mjs
 QDM_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" node tests/reddit-browser.mjs
+QDM_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" node tests/extension-pages.mjs
 ```
 
 It loads the real content script with a controlled message responder and checks
@@ -225,6 +236,14 @@ hover/focus visibility, busy state, persistent checkmarks, disk-status refresh,
 and lazy-image changes. Reddit fixtures also cover shadow DOM, recycled gallery
 slides, viewer URLs, delayed components, and legacy post metadata. It does not exercise Chrome's actual native-host launch;
 the separate integration test covers the real bridge and desktop app.
+
+`extension-pages.mjs` loads the actual unpacked extension in an isolated Chrome
+profile (requires Chrome with the `Extensions.loadUnpacked` debugging API). It
+tests settings saves with granted sites, Chrome's manifest pattern validation,
+denied-permission handling, all eight palette/scheme combinations, live theme
+sync, and offline/older-app behavior. The native app boundary and a denied prompt
+are controlled fixtures; it does not click Chrome's native permission dialog.
+Set `QDM_CAPTURE_DIR` to save light/dark popup and settings screenshots.
 
 For a browser smoke test:
 
