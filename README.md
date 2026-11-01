@@ -14,7 +14,8 @@ remote relay server, account, or listening TCP port in the product.
 
 ## What works
 
-- Image buttons on `joyreactor.cc`, `joyreactor.com`, and their subdomains. Linked
+- Image buttons on `joyreactor.cc`, `joyreactor.com`, `reddit.com` (including old
+  Reddit), and their subdomains. Linked
   originals are preferred to thumbnails. Lazy-loaded and dynamically inserted
   images are discovered; small avatars and icons are skipped.
 - Chrome fetches the original image with the source page's referrer and streams
@@ -72,20 +73,39 @@ inside `qdownloadmanager.app/Contents/MacOS`.
    and select this repository's `extension` folder. The desktop app's **Show
    extension folder** button opens it for you.
 4. Finish the app's setup. Open the extension popup and click **Connect**.
-5. Visit JoyReactor and click the ↓ button over a large image. Keep the desktop app
+5. Visit JoyReactor or Reddit, hover over a large image, and click its ↓ button. Keep the desktop app
    running until the image is saved. Reload previously open pages if necessary.
 
 In the extension's settings, add website domains and additional image-CDN domains.
 Chrome requests host access for additions. Removing a website removes its buttons
 and blocks new requests; Chrome's previously granted permission remains until you
-revoke it in the browser. The default network grants cover only JoyReactor and
-`reactor.cc`, not all websites.
+revoke it in the browser. The default network grants cover JoyReactor, `reactor.cc`, Reddit, and its
+`i.redd.it`, `preview.redd.it`, and `external-preview.redd.it` image hosts.
 
 ### Updating an already loaded extension
 
 After editing/updating the extension folder, click **Reload** on Download Helper
-at `chrome://extensions`, then reload the JoyReactor page. The desktop app does
+at `chrome://extensions`, then refresh the website page. The desktop app does
 not need rebuilding for extension-only changes.
+
+Version 0.2.1 adds Reddit. Reload the extension and refresh any open Reddit tabs;
+no desktop-app rebuild is required. Chrome may ask to approve access to the new
+Reddit domains. The one-time settings migration adds Reddit while keeping custom
+websites, image hosts, and transfer mode. If you later remove Reddit, subsequent
+reloads respect that choice.
+
+Reddit support covers ordinary post images, each displayed gallery slide, the
+`/media?url=…` viewer, and expanded old-Reddit images. Known Reddit preview URLs
+resolve to their original `i.redd.it` media-ID filename, so the same image has one
+filename across feed, gallery, and viewer. External-preview URLs retain their
+signed query string and may be previews rather than originals. Open shadow roots
+and roots attached after page load are scanned; small thumbnails/avatars remain
+excluded. A gallery is saved one image at a time as you browse its slides.
+
+Reddit video players, closed shadow roots, bulk gallery saving, and external
+sites such as Imgur are not added in this release. Add an external image host in
+settings when needed. Requests ask Reddit's CDN for image bytes and reject HTML
+responses and redirects. No Reddit API key, account export, or Qt change is needed.
 
 Version 0.2.0 fixes the quit crash with connected browsers, adds filename-policy
 settings, and checks existing files through two-way Native Messaging. Rebuild and
@@ -153,11 +173,13 @@ The optional automated DOM/CSS test runs in a temporary headless browser profile
 npm install --no-save playwright
 # Or point QDM_PLAYWRIGHT_MODULE to an existing playwright/index.mjs.
 QDM_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" node tests/browser-ui.mjs
+QDM_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" node tests/reddit-browser.mjs
 ```
 
 It loads the real content script with a controlled message responder and checks
 hover/focus visibility, busy state, persistent checkmarks, disk-status refresh,
-and lazy-image changes. It does not exercise Chrome's actual native-host launch;
+and lazy-image changes. Reddit fixtures also cover shadow DOM, recycled gallery
+slides, viewer URLs, delayed components, and legacy post metadata. It does not exercise Chrome's actual native-host launch;
 the separate integration test covers the real bridge and desktop app.
 
 For a browser smoke test:
@@ -207,3 +229,9 @@ See [docs/protocol.md](docs/protocol.md) for framing, commands, and lifecycle ru
 
 The proposed shared catalog is in [docs/database/README.md](docs/database/README.md),
 with an executable draft schema and tests. It is not integrated into the app.
+
+Reddit validation (0.2.1): automated URL/permissions/migration tests, service-worker
+byte-transfer tests, and real Chromium DOM fixtures. A public `i.redd.it` original
+returned HTTP 200 with PNG bytes. Reddit presented a human-verification challenge
+to the separate signed-out browser probe, so live logged-in Reddit layout testing
+remains to be confirmed in the user's session.

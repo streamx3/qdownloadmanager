@@ -112,8 +112,8 @@
   }
   function scheduleCheck() { if (!checkTimer) checkTimer = setTimeout(checkFiles, 250); }
   function addImages(scope) {
-    if (scope.nodeType !== Node.ELEMENT_NODE) return;
-    const images = scope.matches("img") ? [scope] : scope.querySelectorAll("img");
+    if (![Node.ELEMENT_NODE, Node.DOCUMENT_FRAGMENT_NODE].includes(scope.nodeType) || scope === host) return;
+    const images = scope.matches?.("img") ? [scope] : scope.querySelectorAll("img");
     for (const image of images) {
       if (entries.has(image)) continue;
       const button = document.createElement("button");
@@ -128,11 +128,43 @@
       render(entry);
       resize.observe(image);
     }
+    // Modern Reddit uses custom elements; querySelectorAll alone cannot see
+    // images inside their open shadow roots. Observe each root independently.
+    for (const element of [scope, ...scope.querySelectorAll("*")]) {
+      if (element !== host && element.shadowRoot) observeShadow(element.shadowRoot);
+    }
     schedule();
+  }
+  function observeShadow(shadow) {
+    if (shadowObservers.has(shadow)) return;
+    const observer = new MutationObserver(onMutations);
+    observer.observe(shadow, observation);
+    shadow.addEventListener("load", schedule, true);
+    shadow.addEventListener("scroll", schedule, { capture: true, passive: true });
+    shadowObservers.set(shadow, observer);
+    addImages(shadow);
+  }
+  function hitImage() {
+    if (!pointer) return null;
+    let element = document.elementFromPoint(pointer.x, pointer.y);
+    // Stop at our overlay host; its hover tracking handles the button itself.
+    while (element && element !== host && element.shadowRoot) {
+      const inner = element.shadowRoot.elementFromPoint(pointer.x, pointer.y);
+      if (!inner || inner === element) break;
+      element = inner;
+    }
+    return element;
+  }
+  function containsImage(element, image) {
+    if (!element || element === host) return false;
+    for (let node = image; node; node = node.getRootNode?.().host) {
+      if (element.contains(node)) return true;
+    }
+    return false;
   }
   function layout() {
     pending = false;
-    const underPointer = pointer ? document.elementFromPoint(pointer.x, pointer.y) : null;
+    const underPointer = hitImage();
     for (const [image, entry] of entries) {
       const { button } = entry;
       if (!image.isConnected) { resize.unobserve(image); button.remove(); entries.delete(image); continue; }
@@ -141,11 +173,13 @@
       if (entry.url !== url) { entry.url = url; entry.exists = entry.busy = false; entry.error = null; render(entry); scheduleCheck(); }
       const visible = enabled && rules.allowed(url, imageHosts) && image.complete && image.naturalWidth >= 100 && image.naturalHeight >= 80
         && rect.width >= 100 && rect.height >= 80 && rect.bottom > 0 && rect.top < innerHeight
-        && rect.right > 0 && rect.left < innerWidth && image.getClientRects().length > 0;
+        && rect.right > 0 && rect.left < innerWidth && image.getClientRects().length > 0
+        && (image.checkVisibility?.({ checkOpacity: true, checkVisibilityCSS: true }) ?? true);
       if (button.hidden && visible) scheduleCheck();
       button.hidden = !visible;
       const hovered = pointer && pointer.x >= rect.left && pointer.x < rect.right && pointer.y >= rect.top && pointer.y < rect.bottom
-        && (underPointer === image || (underPointer === host && entry.hover));
+        && (underPointer === image || containsImage(underPointer, image)
+          || (underPointer === host && entry.hover));
       button.toggleAttribute("data-hover", Boolean(visible && hovered));
       if (visible) {
         button.style.left = `${Math.max(4, Math.min(innerWidth - 38, rect.right - 38))}px`;
@@ -164,11 +198,15 @@
   }
   globalThis.__qdmRefresh = refresh;
   const resize = new ResizeObserver(schedule);
-  const observer = new MutationObserver(records => {
+  const shadowObservers = new Map();
+  const observation = { childList: true, subtree: true, attributes: true,
+    attributeFilter: ["src", "srcset", "href", "style", "class", "hidden", "aria-hidden", "data-url", "content-href"] };
+  function onMutations(records) {
     for (const record of records) for (const node of record.addedNodes) if (node !== host) addImages(node);
     schedule();
-  });
-  observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "srcset", "href", "style", "class"] });
+  }
+  const observer = new MutationObserver(onMutations);
+  observer.observe(document.documentElement, observation);
   document.addEventListener("pointermove", event => { pointer = { x: event.clientX, y: event.clientY }; schedule(); }, { passive: true });
   document.addEventListener("pointerleave", () => { pointer = null; schedule(); });
   document.addEventListener("visibilitychange", () => { schedule(); scheduleCheck(); });
@@ -177,7 +215,20 @@
   window.addEventListener("resize", schedule, { passive: true });
   window.addEventListener("focus", scheduleCheck);
   chrome.storage.onChanged.addListener((changes, area) => { if (area === "local" && (changes.sites || changes.imageHosts)) refresh(); });
-  setInterval(checkFiles, 3000);
+  setInterval(() => {
+    if (!enabled || document.hidden) return;
+    // A custom element can attach its root after insertion without a document
+    // mutation. Rescan at the status cadence, not on every pointer movement.
+    for (const [shadow, observer] of shadowObservers) {
+      if (!shadow.host.isConnected) {
+        observer.disconnect(); shadow.removeEventListener("load", schedule, true);
+        shadow.removeEventListener("scroll", schedule, true); shadowObservers.delete(shadow);
+      }
+    }
+    addImages(document.documentElement);
+    for (const shadow of shadowObservers.keys()) addImages(shadow);
+    schedule(); checkFiles();
+  }, 3000);
   addImages(document.documentElement);
   refresh();
 })();

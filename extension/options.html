@@ -3,8 +3,8 @@
 <body class="options">
   <header><span class="mark" aria-hidden="true">↓</span><h1>Download Helper settings</h1></header>
   <form id="settings">
-    <section class="card"><h2>Your websites</h2><p>Download buttons appear on images on these domains and their subdomains. Avatars and tiny images are skipped.</p><label for="sites">Enabled websites · one domain per line</label><textarea id="sites" spellcheck="false" placeholder="joyreactor.cc&#10;joyreactor.com"></textarea>
-    <label for="imageHosts">Additional image hosts · one domain per line</label><textarea id="imageHosts" spellcheck="false" placeholder="reactor.cc"></textarea><small>Use this for image CDNs on a different domain. Chrome will ask for access when you add a new domain.</small></section>
+    <section class="card"><h2>Your websites</h2><p>Download buttons appear on images on these domains and their subdomains. Avatars and tiny images are skipped.</p><label for="sites">Enabled websites · one domain per line</label><textarea id="sites" spellcheck="false" placeholder="joyreactor.cc&#10;joyreactor.com&#10;reddit.com"></textarea>
+    <label for="imageHosts">Additional image hosts · one domain per line</label><textarea id="imageHosts" spellcheck="false" placeholder="reactor.cc&#10;i.redd.it&#10;preview.redd.it&#10;external-preview.redd.it"></textarea><small>Use this for image CDNs on a different domain. Chrome will ask for access when you add a new domain.</small></section>
     <section class="card"><h2>Transfer method</h2><label for="mode">How images reach the app</label><select id="mode"><option value="browser">Chrome transfers the image file (recommended)</option><option value="url">Desktop app downloads the URL</option></select><p class="muted">Browser transfer sends the source page’s referrer with the image request and passes the file bytes to the app, preserving animated GIFs. It makes a new request; it does not extract the page’s already-loaded image. URL mode does not use your browser session and may receive a watermarked image.</p></section>
     <button type="submit" class="primary">Save settings</button><p id="feedback" role="status"></p>
   </form>

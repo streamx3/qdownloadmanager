@@ -89,8 +89,11 @@ export class ImageFetcher {
       if (!supported.isSupported) throw new Error("This image URL is too complex to apply its source-page referrer safely.");
       await this.netRequest.updateSessionRules({ addRules: [rule] });
       installed = true;
+      const headers = new Headers(options.headers);
+      if (["i.redd.it", "preview.redd.it", "cf.preview.redd.it", "external-preview.redd.it"].includes(url.hostname))
+        headers.set("Accept", "image/*"); // Ask the CDN for bytes, not Reddit's HTML image viewer.
       return await this.fetchResource(key, {
-        ...options, method: "GET", credentials: "include", redirect: "error",
+        ...options, headers, method: "GET", credentials: "include", redirect: "error",
         // JoyReactor's observed response did not include Vary: Referer. A cached
         // image from an earlier context may therefore contain the wrong variant.
         cache: "no-store"

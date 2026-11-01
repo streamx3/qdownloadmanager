@@ -105,3 +105,18 @@ test("unsupported URL matching fails without fetching under the wrong context", 
   assert.equal(fetched, false);
   assert.equal(api.rules.size, 0);
 });
+
+
+test("Reddit CDN requests ask for image bytes and retain the source-page referrer", async () => {
+  const api = netRequest();
+  const fetcher = new ImageFetcher(api, extensionId, async (url, options) => {
+    assert.equal(url, "https://i.redd.it/abcdefghijkl.png");
+    assert.equal(options.headers.get("accept"), "image/*");
+    assert.equal([...api.rules.values()][0].action.requestHeaders[0].value, "https://old.reddit.com/");
+    assert.equal(options.redirect, "error");
+    return new Response(new Uint8Array([137, 80, 78, 71]));
+  });
+  const response = await fetcher.fetch("https://i.redd.it/abcdefghijkl.png", "https://old.reddit.com/r/pics/comments/example");
+  assert.equal((await response.arrayBuffer()).byteLength, 4);
+  assert.equal(api.rules.size, 0);
+});

@@ -1,6 +1,7 @@
 import "./rules.js";
 import { NativeClient } from "./native-client.js";
 import { ImageFetcher } from "./image-fetch.js";
+import { migrateSettings } from "./settings.js";
 
 const rules = globalThis.QdmRules;
 const identity = fetch(chrome.runtime.getURL("identity.json")).then(response => response.json());
@@ -38,7 +39,10 @@ async function syncSites() {
 }
 let syncChain = Promise.resolve();
 function scheduleSync() {
-  syncChain = syncChain.catch(() => {}).then(syncSites);
+  syncChain = syncChain.catch(() => {}).then(async () => {
+    await migrateSettings(chrome.storage.local);
+    await syncSites();
+  });
   return syncChain;
 }
 chrome.runtime.onInstalled.addListener(() => { scheduleSync().catch(console.error); chrome.alarms.create("qdm-reconnect", { periodInMinutes: 1 }); });

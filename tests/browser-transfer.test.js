@@ -6,6 +6,7 @@ test("the service-worker handler calls fetch with its global receiver and stream
   const url = "https://img0.joyreactor.cc/pics/post/full/test.gif";
   const source = "https://joyreactor.cc/post/123";
   const body = new Uint8Array(250000).map((_, index) => index % 256);
+  let expectedImageUrl = url, expectedReferrer = "https://joyreactor.cc/";
   const activeRules = new Map();
   const sent = [];
   let handler;
@@ -60,11 +61,11 @@ test("the service-worker handler calls fetch with its global receiver and stream
     // check when a native worker function is stored on another object.
     if (this !== globalThis) throw new TypeError("Failed to execute 'fetch' on 'WorkerGlobalScope': Illegal invocation");
     imageFetches++;
-    assert.equal(target, url);
+    assert.equal(target, expectedImageUrl);
     assert.equal(options.cache, "no-store");
     assert.equal(options.credentials, "include");
     const rule = [...activeRules.values()][0];
-    assert.equal(rule.action.requestHeaders[0].value, "https://joyreactor.cc/");
+    assert.equal(rule.action.requestHeaders[0].value, expectedReferrer);
     return new Response(body, { headers: { "content-type": "image/gif", "content-length": String(body.length) } });
   };
   globalThis.setInterval = () => 0;
@@ -101,6 +102,16 @@ test("the service-worker handler calls fetch with its global receiver and stream
     assert.equal((await send({ type: "filesStatus", urls: [url] }, { ...sender, frameId: 1 })).ok, false);
     assert.equal((await send({ type: "filesStatus", urls: Array(65).fill(url) })).ok, false);
     assert.equal(sent.length, beforeInvalid, "untrusted status requests must not reach the native app");
+    // Exercise the same body-transfer handler from the newly enabled Reddit site.
+    scenario = "transfer"; received = 0;
+    expectedImageUrl = "https://i.redd.it/abcdefghijkl.gif";
+    expectedReferrer = "https://www.reddit.com/";
+    const redditStart = sent.length;
+    assert.equal((await send({ type: "download", url: expectedImageUrl }, { ...sender, url: "https://www.reddit.com/r/pics/comments/example/" })).ok, true);
+    const redditMessages = sent.slice(redditStart);
+    assert.equal(redditMessages.find(message => message.type === "begin").name, "abcdefghijkl.gif");
+    assert.deepEqual(Buffer.concat(redditMessages.filter(message => message.type === "chunk").map(message => Buffer.from(message.data, "base64"))), Buffer.from(body));
+    assert.equal(activeRules.size, 0);
   } finally {
     globalThis.chrome = priorChrome;
     globalThis.fetch = priorFetch;

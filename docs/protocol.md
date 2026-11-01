@@ -102,3 +102,11 @@ table, close local clients, abort network replies, remove partial files, and sav
 interrupted history while the UI models still exist. Destructor cleanup is
 idempotent so quitting through QML, the tray menu, or the window follows the same
 path. No partial file is published as a completed image.
+
+Reddit support (extension 0.2.1) uses the same transfer and status protocol. The
+content script unwraps Reddit media-viewer URLs and converts recognized native
+preview IDs to `i.redd.it` originals before both status queries and download
+requests. Signed external-preview URLs remain unchanged. The worker validates
+the sender and resolved host as usual; CDN fetches set `Accept: image/*` along
+with the source-page referrer. No gallery/API JSON or browser-session secrets are
+sent to the desktop app. Galleries are handled one visible image at a time.
