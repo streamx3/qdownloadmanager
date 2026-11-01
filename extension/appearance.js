@@ -1,19 +1,5 @@
-export const DEFAULT_APPEARANCE = Object.freeze({ palette: "blurple", colorScheme: "dark" });
-export const COLOR_ROLES = Object.freeze([
-  "bg", "surface", "text", "line", "muted", "dim", "inset", "accent", "accent-text", "accent-dark", "hover", "danger"
-]);
-
-export function validAppearance(value) {
-  if (!value || !["blurple", "teal", "blue", "grey"].includes(value.palette)
-      || !["dark", "light", "system"].includes(value.colorScheme)) return null;
-  const appearance = { palette: value.palette, colorScheme: value.colorScheme };
-  if (["dark", "light"].includes(value.resolvedScheme) && value.colors
-      && COLOR_ROLES.every(role => typeof value.colors[role] === "string" && /^#[0-9a-f]{6}$/i.test(value.colors[role]))) {
-    appearance.resolvedScheme = value.resolvedScheme;
-    appearance.colors = Object.fromEntries(COLOR_ROLES.map(role => [role, value.colors[role]]));
-  }
-  return appearance;
-}
+import "./appearance-data.js";
+export const { DEFAULT_APPEARANCE, COLOR_ROLES, validAppearance } = globalThis.QdmAppearance;
 
 export async function cacheAppearance(storage, value) {
   const appearance = validAppearance(value);

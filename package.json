@@ -2,5 +2,5 @@
   "name": "qdownloadmanager",
   "private": true,
   "type": "module",
-  "scripts": { "test": "node --test tests/*.test.js", "check": "node --check extension/background.js && node --check extension/content.js && node --check extension/options.js && node --check extension/popup.js && node --check extension/image-fetch.js && node --check extension/settings.js && node --check extension/rules.js && node --check extension/appearance.js && node --check extension/theme.js && node --check extension/palettes.js" }
+  "scripts": { "test": "node --test tests/*.test.js", "check": "node --check extension/background.js && node --check extension/content.js && node --check extension/options.js && node --check extension/popup.js && node --check extension/image-fetch.js && node --check extension/settings.js && node --check extension/rules.js && node --check extension/appearance-data.js && node --check extension/appearance.js && node --check extension/theme.js && node --check extension/palettes.js" }
 }

@@ -29,7 +29,8 @@ try {
         postMessage(message) {
           queueMicrotask(() => receive({ v: 1, id: message.id, ok: appOnline,
             ...(appOnline ? { setupComplete: true, accepting: true, appearance: appAppearance }
-              : { error: { code: "app_not_running", message: "Open Download Helper." } }) }));
+              : { error: { code: "app_not_running", message: "Open Download Helper." } }),
+            ...(message.type === "filesStatus" ? { files: message.names.map(name => ({ name, exists: false, busy: false, policy: "skip" })) } : {}) }));
         }, disconnect() {}
       };
     };
@@ -135,6 +136,47 @@ try {
   assert.equal(await popup.getAttribute("html", "data-palette"), "blue");
   await page.bringToFront();
   await page.waitForFunction(() => document.querySelector("#themeStatus").textContent.includes("Restart the updated desktop app"));
+  // Exercise real content-script injection and theme updates with no popup or
+  // options page left open. Only the native app boundary remains controlled.
+  const website = await context.newPage();
+  website.on("pageerror", error => errors.push(error.message));
+  await website.route("https://joyreactor.cc/**", route => route.fulfill({ contentType: "text/html",
+    body: '<!doctype html><body style="padding:80px"><img id="art" width="500" height="320" src="https://joyreactor.cc/test.svg"></body>' }));
+  await website.route("**/test.svg", route => route.fulfill({ contentType: "image/svg+xml",
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="320"><rect width="500" height="320" fill="#8198a0"/></svg>' }));
+  await website.goto("https://joyreactor.cc/post/theme-test");
+  await page.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ url: "https://joyreactor.cc/post/theme-test" });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => {
+      const attach = Element.prototype.attachShadow;
+      Element.prototype.attachShadow = function(options) { return attach.call(this, { ...options, mode: "open" }); };
+    } });
+    await chrome.storage.local.set({ sites: ["joyreactor.cc"], imageHosts: [], mode: "browser" });
+    await chrome.runtime.sendMessage({ type: "syncSites" });
+  });
+  await page.close(); await popup.close();
+  const overlay = website.locator("#qdm-image-buttons button:not([hidden])");
+  await overlay.waitFor();
+  await website.locator("#art").hover();
+  for (const palette of Object.keys(backgrounds)) {
+    for (const colorScheme of ["dark", "light"]) {
+      const appearance = { ...renderedTheme(palette, colorScheme), colorScheme: "system" };
+      await website.emulateMedia({ colorScheme: colorScheme === "dark" ? "light" : "dark" });
+      await worker.evaluate(value => { appAppearance = value; }, appearance);
+      await website.waitForFunction(background => {
+        const button = document.querySelector("#qdm-image-buttons")?.shadowRoot?.querySelector("button:not([hidden])");
+        return button && getComputedStyle(button).backgroundColor === background;
+      }, backgrounds[palette][colorScheme]);
+      const actual = await overlay.evaluate((button, roles) => Object.fromEntries(roles.map(role => [role,
+        getComputedStyle(button).getPropertyValue(`--qdm-${role}`).trim()])), Object.keys(appearance.colors));
+      assert.deepEqual(actual, appearance.colors, "website overlay must use all of Qt's colors");
+      assert.equal(await overlay.evaluate(button => getComputedStyle(button).colorScheme), colorScheme);
+      if (process.env.QDM_CAPTURE_DIR && palette === "teal")
+        await website.screenshot({ path: `${process.env.QDM_CAPTURE_DIR}/overlay-${colorScheme}.png` });
+    }
+  }
+  await website.mouse.move(10, 10);
+  await website.waitForFunction(() => getComputedStyle(document.querySelector("#qdm-image-buttons").shadowRoot.querySelector("button")).opacity === "0");
   assert.deepEqual(errors, []);
-  console.log(`PASS: real extension saves, permission patterns, eight ${qtThemes ? "Qt-rendered" : "fixture"} themes, exact color sync, Qt-over-Chrome scheme, offline/older-app fallback`);
+  console.log(`PASS: real extension saves, permission patterns, eight ${qtThemes ? "Qt-rendered" : "fixture"} themes, popup/settings/overlay sync, overlay-only polling, Qt-over-Chrome scheme, offline fallback`);
 } finally { await context.close(); }

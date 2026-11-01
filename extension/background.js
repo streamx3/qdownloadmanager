@@ -38,11 +38,11 @@ async function syncSites() {
   if (!settings.sites.length) return;
   const matches = rules.patterns(settings.sites);
   await chrome.scripting.registerContentScripts([{
-    id: "qdm-images", matches, js: ["rules.js", "content.js"], runAt: "document_idle", persistAcrossSessions: true
+    id: "qdm-images", matches, js: ["rules.js", "appearance-data.js", "content.js"], runAt: "document_idle", persistAcrossSessions: true
   }]);
   // Apply newly enabled websites to tabs that are already open.
   const tabs = await chrome.tabs.query({ url: matches });
-  await Promise.allSettled(tabs.filter(tab => tab.id).map(tab => chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["rules.js", "content.js"] })));
+  await Promise.allSettled(tabs.filter(tab => tab.id).map(tab => chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["rules.js", "appearance-data.js", "content.js"] })));
 }
 let syncChain = Promise.resolve();
 function scheduleSync() {
@@ -83,6 +83,10 @@ async function filesStatus(message, sender) {
   validateSource(sender, settings);
   if (!Array.isArray(message.urls) || message.urls.length > 64) throw new Error("Check at most 64 images at a time.");
   for (const url of message.urls) validateImage(url, settings);
+  // Refresh the shared theme even when only website overlays are open. Concurrent
+  // tabs share statusTask; the appearance cache only emits changes when necessary.
+  const state = await status();
+  if (!state.online) throw new Error(state.error);
   const result = await (await client()).request("filesStatus", { names: message.urls.map(rules.filename) });
   return { ok: true, files: result.files.map((file, index) => ({ ...file, url: message.urls[index] })) };
 }

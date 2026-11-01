@@ -140,3 +140,12 @@ A detached host cleans up its timers. Mouse visibility belongs to one image at
 a time and clears on pointer exit, hidden pages, or window blur; keyboard focus
 continues to reveal a button. This is UI lifecycle handling, with no protocol or
 native transfer changes.
+
+Extension 0.2.6 applies the cached Qt `appearance` snapshot to image-overlay
+buttons and notices inside their shadow root. Shared validation permits only
+the defined hex color roles. `filesStatus` handling also refreshes `hello` and
+the appearance cache, so visible website overlays follow theme changes without
+an open popup/options page. Concurrent status requests share a pending request.
+Storage changes recolor existing controls without resetting download states;
+offline overlays keep the last cached theme. No native protocol changes are
+needed, and the existing hover/focus visibility behavior is preserved.

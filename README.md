@@ -116,7 +116,11 @@ check for changes every three seconds and keep the exact last received theme whe
 the app is closed. Qt decides the scheme in System mode; Chrome does not override
 it with its own preference. This requires app 0.3.2+ and extension 0.2.4+. Before
 the first theme sync, the extension uses blurple/dark. There is no separate
-extension theme selector. The compact image overlay retains its current appearance.
+extension theme selector. From extension 0.2.6, image-overlay buttons and their
+notifications also use those exact colors, including hover, progress, saved, and
+error states. They stay transparent until the image is hovered or the button has
+keyboard focus. Website image-status checks refresh the shared theme even with
+the popup and settings closed; offline overlays retain the last received theme.
 
 App 0.3.3 includes a teal download arrow on a dark squircle as a proper macOS
 bundle icon, as well as the runtime Qt icon. This makes it available in Finder,
@@ -130,6 +134,11 @@ glyphs are centered within their buttons, and the moon uses a corrected crescent
 After editing/updating the extension folder, click **Reload** on Download Helper
 at `chrome://extensions`, then refresh the website page. The desktop app does
 not need rebuilding for extension-only changes.
+
+Extension 0.2.6 themes the image-overlay controls using the Qt app's rendered
+palette and scheme. Reload the extension and refresh open website tabs once.
+The existing app 0.3.2+ already supplies the necessary colors; no app update is
+needed for this extension release.
 
 Extension 0.2.4 with app 0.3.2 uses the actual color values exported by the Qt UI.
 This prevents a scheme mismatch when Qt and Chrome resolve System differently,

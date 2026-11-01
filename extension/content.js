@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "0.2.2";
+  const VERSION = "0.2.6";
   if (globalThis.__qdmVersion === VERSION && document.querySelector("#qdm-image-buttons")) { globalThis.__qdmRefresh?.(); return; }
   globalThis.__qdmDestroy?.();
   // Reloading an unpacked extension invalidates its old JS context, but leaves
@@ -14,20 +14,34 @@
   const root = host.attachShadow({ mode: "closed" });
   const style = document.createElement("style");
   style.textContent = `
-    :host { color-scheme: dark; }
-    button { position:fixed;display:grid;place-items:center;box-sizing:border-box;width:32px;height:32px;padding:0;border:1px solid #9184d9;border-radius:8px;background:#161826eb;color:#d2cefd;box-shadow:0 2px 8px #0006;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s,background .12s;font:15px system-ui; }
+    button,.notice { color-scheme:dark;--qdm-bg:#161826;--qdm-surface:#232532;--qdm-text:#e9e9ed;--qdm-line:#3f424d;--qdm-accent:#9184d9;--qdm-accent-text:#d2cefd;--qdm-accent-dark:#2b2741;--qdm-hover:#3f424d;--qdm-danger:#e37272;--qdm-shadow:#0006; }
+    button { position:fixed;display:grid;place-items:center;box-sizing:border-box;width:32px;height:32px;padding:0;border:1px solid var(--qdm-accent);border-radius:10px;background:var(--qdm-bg);color:var(--qdm-accent-text);box-shadow:0 2px 8px var(--qdm-shadow);cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s,background .12s;font:15px system-ui; }
     button[data-hover], button:focus-visible { opacity:1;pointer-events:auto; }
-    button:hover { background:#423a6a; }
-    button:focus-visible { outline:2px solid #d2cefd;outline-offset:3px; }
+    button:hover { background:var(--qdm-hover); }
+    button:active { background:var(--qdm-accent-dark); }
+    button:focus-visible { outline:2px solid var(--qdm-accent);outline-offset:3px; }
+    button[data-state="error"] { color:var(--qdm-danger);border-color:var(--qdm-danger); }
     button[hidden] { display:none; }
     button[aria-busy="true"] { cursor:progress; }
     svg { width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }
     .spinner { animation:qdm-spin .9s linear infinite; }
     @keyframes qdm-spin { to { transform:rotate(360deg); } }
     @media (prefers-reduced-motion:reduce) { .spinner { animation:none; } button { transition:none; } }
-    .notice { position:fixed;bottom:20px;right:20px;max-width:min(360px,80vw);padding:12px 16px;border:1px solid #595d6c;border-radius:8px;background:#232532;color:#e9e9ed;font:13px/1.5 system-ui;box-shadow:0 4px 20px #0005;pointer-events:auto; }
+    .notice { position:fixed;bottom:20px;right:20px;max-width:min(360px,80vw);padding:12px 16px;border:1px solid var(--qdm-line);border-radius:8px;background:var(--qdm-surface);color:var(--qdm-text);font:13px/1.5 system-ui;box-shadow:0 4px 20px var(--qdm-shadow);pointer-events:auto; }
   `;
   root.append(style);
+  const themeStyle = document.createElement("style");
+  root.append(themeStyle);
+  let appearanceRevision = 0;
+  function applyAppearance(value) {
+    const appearance = globalThis.QdmAppearance.validAppearance(value);
+    if (!appearance?.colors) { themeStyle.textContent = ""; return; }
+    // Only whitelisted hex colors enter the stylesheet, inside our shadow root.
+    // Applying to controls directly also prevents site CSS variables leaking in.
+    const variables = Object.entries(appearance.colors).map(([role, color]) => `--qdm-${role}:${color}`).join(";");
+    const dark = appearance.resolvedScheme === "dark";
+    themeStyle.textContent = `button,.notice{${variables};color-scheme:${dark ? "dark" : "light"};--qdm-shadow:${dark ? "#0006" : "#0003"}}`;
+  }
   const notice = document.createElement("div");
   notice.className = "notice";
   notice.setAttribute("role", "status");
@@ -205,7 +219,10 @@
   function schedule() { if (!destroyed && !pending) { pending = true; frameId = requestAnimationFrame(layout); } }
   async function refresh() {
     try {
-      const settings = await chrome.storage.local.get(rules.DEFAULTS);
+      const revision = appearanceRevision;
+      const settings = await chrome.storage.local.get({ ...rules.DEFAULTS, appearance: null });
+      if (destroyed) return;
+      if (revision === appearanceRevision) applyAppearance(settings.appearance);
       enabled = rules.allowed(location.href, settings.sites);
       imageHosts = [...settings.sites, ...settings.imageHosts];
       schedule(); scheduleCheck();
@@ -236,7 +253,11 @@
   listen(window, "resize", schedule, { passive: true });
   listen(window, "focus", scheduleCheck);
   listen(window, "blur", clearPointer);
-  const settingsChanged = (changes, area) => { if (area === "local" && (changes.sites || changes.imageHosts)) refresh(); };
+  const settingsChanged = (changes, area) => {
+    if (area !== "local" || destroyed) return;
+    if (changes.appearance) { appearanceRevision++; applyAppearance(changes.appearance.newValue); }
+    if (changes.sites || changes.imageHosts) refresh();
+  };
   chrome.storage.onChanged.addListener(settingsChanged);
   const interval = setInterval(() => {
     if (!host.isConnected) { destroy(); return; }

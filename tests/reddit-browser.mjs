@@ -36,7 +36,7 @@ try {
       <a href="/gallery/example"><img id="slide" src="https://preview.redd.it/title-v0-abcdefghijkl.png?width=300&s=signature"></a>
       <img style="display:none" src="https://preview.redd.it/mnopqrstuvwx.jpg?width=300&s=signature">`;
   });
-  for (const script of ["rules.js", "content.js"]) await page.addScriptTag({ content: await readFile(new URL(`../extension/${script}`, import.meta.url), "utf8") });
+  for (const script of ["rules.js", "appearance-data.js", "content.js"]) await page.addScriptTag({ content: await readFile(new URL(`../extension/${script}`, import.meta.url), "utf8") });
   const buttons = page.locator('#qdm-image-buttons button:not([hidden])');
   await buttons.first().waitFor();
   assert.equal(await buttons.count(), 1, 'only the visible gallery slide gets a button');
