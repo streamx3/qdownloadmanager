@@ -1,0 +1,6 @@
+#pragma once
+namespace Identity {
+inline constexpr auto Host = "@NATIVE_HOST@";
+inline constexpr auto ExtensionId = "@EXTENSION_ID@";
+inline constexpr auto Version = "@PROJECT_VERSION@";
+}

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Download Helper" description="Compact native utility window: OS permission onboarding, connection status with connect/disconnect, current download, recent files and settings" -->
+<helmet>
+<title>Download Helper</title>
+<script src="./ds-base.js"></script>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<style>body{margin:0}.ph{font-size:16px;line-height:1;display:block}</style>
+</helmet>
+<div style="min-height:100vh;display:grid;place-items:center;padding:40px 16px;background:radial-gradient(1200px 700px at 25% 10%, var(--color-accent-900), var(--color-bg) 70%);font-family:var(--font-body);color:var(--color-text)">
+<div data-screen-label="Window" style="position:relative;width:380px;height:640px;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;background:linear-gradient(180deg, var(--color-bg), #12131f);box-shadow:var(--shadow-lg)">
+<sc-if value="{{ isMac }}" hint-placeholder-val="{{ true }}">
+<div style="height:34px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;position:relative">
+<span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-700)"></span>
+<span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-700)"></span>
+<span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-800)"></span>
+<span style="position:absolute;left:0;right:0;text-align:center;font-size:12px;color:var(--color-neutral-500);pointer-events:none">Download Helper</span>
+</div>
+</sc-if>
+<sc-if value="{{ isWin }}" hint-placeholder-val="{{ false }}">
+<div style="height:34px;flex:none;display:flex;align-items:center;padding-left:12px;gap:8px">
+<i class="ph ph-arrow-line-down" style="font-size:14px;color:var(--color-accent)"></i>
+<span style="font-size:12px;color:var(--color-neutral-400);margin-right:auto">Download Helper</span>
+<span style="width:44px;height:34px;display:grid;place-items:center;color:var(--color-neutral-400)" style-hover="background:var(--color-neutral-900)"><i class="ph ph-minus" style="font-size:13px"></i></span>
+<span style="width:44px;height:34px;display:grid;place-items:center;color:var(--color-neutral-700)"><i class="ph ph-square" style="font-size:12px"></i></span>
+<span style="width:44px;height:34px;display:grid;place-items:center;color:var(--color-neutral-400)" style-hover="background:var(--color-neutral-800)"><i class="ph ph-x" style="font-size:13px"></i></span>
+</div>
+</sc-if>
+
+<sc-if value="{{ onPermissions }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Permissions" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;padding:18px 20px 20px;overflow:auto">
+<div style="width:44px;height:44px;border-radius:10px;display:grid;place-items:center;background:var(--color-accent-900);box-shadow:inset 0 0 0 1px var(--color-accent-800);color:var(--color-accent-300)"><i class="ph ph-arrow-line-down" style="font-size:22px"></i></div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<h4 style="margin:0;font-size:20px">Set up permissions</h4>
+<p style="margin:0;font-size:13px;line-height:1.5;color:var(--color-neutral-400);text-wrap:pretty">Download Helper saves files straight to this computer, so {{ osName }} has to let it. You can change these later in Settings.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<sc-for list="{{ permList }}" as="p" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--radius-md);background:var(--color-surface)">
+<div style="width:32px;height:32px;flex:none;border-radius:7px;display:grid;place-items:center;background:var(--color-neutral-900);color:var(--color-neutral-300)"><i class="ph ph-{{ p.icon }}"></i></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+<div style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:500">{{ p.title }}<sc-if value="{{ p.required }}" hint-placeholder-val="{{ false }}"><span class="tag tag-accent" style="font-size:10px;padding:1px 6px">Required</span></sc-if></div>
+<div style="font-size:12px;line-height:1.4;color:var(--color-neutral-400)">{{ p.desc }}</div>
+</div>
+<sc-if value="{{ p.isPending }}" hint-placeholder-val="{{ true }}"><button class="btn btn-secondary" style="font-size:12.5px;padding:5px 12px;flex:none" onClick="{{ p.onAsk }}">Allow</button></sc-if>
+<sc-if value="{{ p.isGranted }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-accent-300);flex:none"><i class="ph ph-check-circle" style="color:var(--color-accent)"></i>Allowed</span></sc-if>
+<sc-if value="{{ p.isDenied }}" hint-placeholder-val="{{ false }}"><button class="btn btn-ghost" style="font-size:12px;flex:none;padding:5px 6px" onClick="{{ p.onAsk }}">Open {{ settingsName }}</button></sc-if>
+</div>
+</sc-for>
+</div>
+<div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+<button class="btn btn-primary" style="width:100%;padding:9px" disabled="{{ continueDisabled }}" onClick="{{ onContinue }}">Continue</button>
+<span style="font-size:11.5px;text-align:center;color:var(--color-neutral-500)">{{ continueHint }}</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ onMain }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Main" style="flex:1;min-height:0;display:flex;flex-direction:column">
+<div style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:20px;padding:8px 16px 16px">
+<div style="display:flex;align-items:center;gap:10px">
+<div style="width:28px;height:28px;border-radius:7px;display:grid;place-items:center;background:var(--color-accent-900);box-shadow:inset 0 0 0 1px var(--color-accent-800);color:var(--color-accent-300)"><i class="ph ph-arrow-line-down" style="font-size:15px"></i></div>
+<span style="font-size:15px;font-weight:500;margin-right:auto">Download Helper</span>
+<button class="btn btn-secondary btn-icon" style="width:30px;height:30px;color:var(--color-neutral-300)" aria-label="Settings" title="Settings" onClick="{{ openSettings }}"><i class="ph ph-gear-six"></i></button>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px;padding:14px;border-radius:var(--radius-md);background:var(--color-surface)">
+<div style="display:flex;align-items:center;gap:12px">
+<sc-if value="{{ isConnected }}" hint-placeholder-val="{{ false }}"><span style="width:10px;height:10px;flex:none;border-radius:50%;margin:0 2px;background:var(--color-accent);border:1.5px solid var(--color-accent);box-shadow:0 0 0 3px var(--color-accent-900), 0 0 10px var(--color-accent)"></span></sc-if>
+<sc-if value="{{ isConnecting }}" hint-placeholder-val="{{ false }}"><span ref="{{ dotRef }}" style="width:10px;height:10px;flex:none;border-radius:50%;margin:0 2px;background:var(--color-accent-400);border:1.5px solid var(--color-accent-400);box-shadow:0 0 0 3px var(--color-accent-900);transition:opacity .4s ease"></span></sc-if>
+<sc-if value="{{ isDisconnected }}" hint-placeholder-val="{{ true }}"><span style="width:10px;height:10px;flex:none;border-radius:50%;margin:0 2px;background:transparent;border:1.5px solid var(--color-neutral-600)"></span></sc-if>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+<span style="font-size:17px;font-weight:500;line-height:1.25">{{ statusTitle }}</span>
+<span style="font-size:12px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ statusSub }}</span>
+</div>
+</div>
+<button class="{{ connBtnClass }}" style="width:100%;padding:8px" onClick="{{ onConnBtn }}"><i class="ph ph-{{ connBtnIcon }}"></i>{{ connBtnLabel }}</button>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;gap:8px;min-height:20px">
+<span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-right:auto">Current download</span>
+<sc-if value="{{ hasQueue }}" hint-placeholder-val="{{ true }}"><span class="tag tag-neutral" style="font-size:10.5px;padding:1px 8px">{{ queuedLabel }}</span></sc-if>
+</div>
+<sc-if value="{{ hasDownload }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:var(--radius-md);background:var(--color-surface)">
+<div style="display:flex;align-items:center;gap:10px">
+<div style="width:32px;height:32px;flex:none;border-radius:7px;display:grid;place-items:center;background:var(--color-neutral-900);color:var(--color-neutral-300)"><i class="ph ph-{{ dlIcon }}"></i></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+<span style="font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ dlName }}</span>
+<span style="font-size:12px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums">{{ dlBytes }}</span>
+</div>
+<button class="btn btn-icon" style="width:28px;height:28px;color:var(--color-neutral-300)" style-hover="background:var(--color-neutral-900)" aria-label="{{ pauseLabel }}" title="{{ pauseLabel }}" disabled="{{ pauseDisabled }}" onClick="{{ togglePause }}"><i class="ph ph-{{ pauseIcon }}"></i></button>
+<button class="btn btn-icon" style="width:28px;height:28px;color:var(--color-neutral-300)" style-hover="background:var(--color-neutral-900)" aria-label="Cancel download" title="Cancel download" onClick="{{ cancelDl }}"><i class="ph ph-x"></i></button>
+</div>
+<div style="height:4px;border-radius:2px;background:var(--color-neutral-900);overflow:hidden">
+<sc-if value="{{ isLive }}" hint-placeholder-val="{{ true }}"><div ref="{{ barRef }}" style="height:100%;width:0;border-radius:2px;background:var(--color-accent);box-shadow:0 0 8px var(--color-accent);transition:width .4s linear"></div></sc-if>
+<sc-if value="{{ notLive }}" hint-placeholder-val="{{ false }}"><div ref="{{ barRef }}" style="height:100%;width:0;border-radius:2px;background:var(--color-neutral-600);transition:width .4s linear"></div></sc-if>
+</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums">
+<span style="margin-right:auto">{{ dlState }}</span>
+<span>{{ dlPct }}</span>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ noDownload }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:10px;padding:14px 12px;border-radius:var(--radius-md);box-shadow:inset 0 0 0 1px var(--color-divider);font-size:12.5px;color:var(--color-neutral-400)"><i class="ph ph-tray" style="font-size:18px;color:var(--color-neutral-600)"></i>{{ emptyText }}</div>
+</sc-if>
+</div>
+<sc-if value="{{ showRecent }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:2px">
+<span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:4px">Recent</span>
+<sc-for list="{{ recentList }}" as="r" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;gap:10px;padding:7px 6px;margin:0 -6px;border-radius:6px" style-hover="background:color-mix(in srgb, var(--color-text) 4%, transparent)">
+<i class="ph ph-{{ r.icon }}" style="color:var(--color-neutral-500)"></i>
+<span style="flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+<span style="font-size:11.5px;color:var(--color-neutral-500);font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.meta }}</span>
+<button class="btn btn-icon" style="width:24px;height:24px;color:var(--color-neutral-400)" aria-label="{{ revealLabel }}" title="{{ revealLabel }}"><i class="ph ph-magnifying-glass" style="font-size:14px"></i></button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<div style="flex:none;display:flex;align-items:center;gap:8px;padding:10px 16px;background:linear-gradient(to right, transparent, var(--color-divider) 48px, var(--color-divider) calc(100% - 48px), transparent) no-repeat top / 100% 1px;font-size:12px;color:var(--color-neutral-400)">
+<i class="ph ph-folder-simple" style="font-size:14px"></i>
+<span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ savePath }}</span>
+<button class="btn btn-ghost" style="font-size:12px;padding:3px 6px">Open folder</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ onSettings }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Settings" style="flex:1;min-height:0;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+<button class="btn btn-icon" style="width:30px;height:30px;color:var(--color-neutral-300)" style-hover="background:var(--color-surface)" aria-label="Back" onClick="{{ closeSettings }}"><i class="ph ph-arrow-left"></i></button>
+<span style="font-size:15px;font-weight:500">Settings</span>
+</div>
+<div style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:18px;padding:4px 16px 16px">
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500)">Connection</span>
+<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-md);background:var(--color-surface)">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:13px">Server</span><span style="font-size:12px;color:var(--color-neutral-400)">relay.example.net</span></div>
+<button class="btn btn-secondary" style="font-size:12px;padding:4px 10px">Edit</button>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500)">Downloads</span>
+<div style="display:flex;flex-direction:column;border-radius:var(--radius-md);background:var(--color-surface)">
+<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--color-neutral-900)">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:13px">Save to</span><span style="font-size:12px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ savePath }}</span></div>
+<button class="btn btn-secondary" style="font-size:12px;padding:4px 10px;flex:none" onClick="{{ changePath }}">Change…</button>
+</div>
+<div style="display:flex;align-items:center;gap:10px;padding:10px 12px">
+<span style="flex:1;font-size:13px">Downloads at once</span>
+<div class="seg">
+<label class="seg-opt" style="padding:4px 11px;font-size:12px"><input type="radio" name="dh-sim" checked="{{ sim1 }}" onChange="{{ setSim1 }}" />1</label>
+<label class="seg-opt" style="padding:4px 11px;font-size:12px"><input type="radio" name="dh-sim" checked="{{ sim2 }}" onChange="{{ setSim2 }}" />2</label>
+<label class="seg-opt" style="padding:4px 11px;font-size:12px"><input type="radio" name="dh-sim" checked="{{ sim3 }}" onChange="{{ setSim3 }}" />3</label>
+</div>
+</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500)">Behavior</span>
+<div style="display:flex;flex-direction:column;border-radius:var(--radius-md);background:var(--color-surface)">
+<sc-for list="{{ toggleList }}" as="t" hint-placeholder-count="3">
+<sc-if value="{{ t.notFirst }}" hint-placeholder-val="{{ false }}"><div style="height:1px;margin:0 12px;background:var(--color-neutral-900)"></div></sc-if>
+<div style="display:flex;align-items:center;gap:12px;padding:10px 12px">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:13px">{{ t.label }}</span><span style="font-size:12px;color:var(--color-neutral-400)">{{ t.sub }}</span></div>
+<sc-if value="{{ t.on }}" hint-placeholder-val="{{ false }}"><button role="switch" aria-checked="true" aria-label="{{ t.label }}" onClick="{{ t.onToggle }}" style="position:relative;width:32px;height:18px;flex:none;padding:0;border-radius:9px;cursor:pointer;background:var(--color-accent-800);border:1px solid var(--color-accent)"><span style="position:absolute;top:2px;left:16px;width:12px;height:12px;border-radius:50%;background:var(--color-accent-300)"></span></button></sc-if>
+<sc-if value="{{ t.off }}" hint-placeholder-val="{{ true }}"><button role="switch" aria-checked="false" aria-label="{{ t.label }}" onClick="{{ t.onToggle }}" style="position:relative;width:32px;height:18px;flex:none;padding:0;border-radius:9px;cursor:pointer;background:transparent;border:1px solid var(--color-neutral-700)"><span style="position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--color-neutral-500)"></span></button></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-neutral-500)">{{ osName }} permissions</span>
+<div style="display:flex;flex-direction:column;border-radius:var(--radius-md);background:var(--color-surface)">
+<sc-for list="{{ permList }}" as="p" hint-placeholder-count="3">
+<sc-if value="{{ p.notFirst }}" hint-placeholder-val="{{ false }}"><div style="height:1px;margin:0 12px;background:var(--color-neutral-900)"></div></sc-if>
+<div style="display:flex;align-items:center;gap:10px;padding:9px 12px">
+<i class="ph ph-{{ p.icon }}" style="color:var(--color-neutral-400)"></i>
+<span style="flex:1;font-size:13px">{{ p.title }}</span>
+<sc-if value="{{ p.isGranted }}" hint-placeholder-val="{{ true }}"><span class="tag tag-accent" style="font-size:10.5px;padding:1px 8px">Allowed</span></sc-if>
+<sc-if value="{{ p.notGranted }}" hint-placeholder-val="{{ false }}"><button class="btn btn-ghost" style="font-size:12px;padding:3px 6px" onClick="{{ p.onAsk }}">Allow…</button></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:4px;font-size:11.5px;color:var(--color-neutral-500)">
+<span style="margin-right:auto">Version 1.0.0</span>
+<button class="btn btn-ghost" style="font-size:12px;padding:3px 6px" onClick="{{ quit }}">Quit Download Helper</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasPrompt }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;display:grid;place-items:center;padding:24px;background:color-mix(in srgb, var(--color-neutral-900) 70%, transparent)">
+<div role="dialog" aria-label="System permission request" style="width:100%;max-width:290px;display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-lg)">
+<div style="display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-neutral-500)"><i class="ph ph-shield-check" style="font-size:14px"></i>{{ osName }}</div>
+<span style="font-size:14.5px;font-weight:500;line-height:1.35;text-wrap:pretty">{{ promptTitle }}</span>
+<span style="font-size:12.5px;line-height:1.45;color:var(--color-neutral-400);text-wrap:pretty">{{ promptBody }}</span>
+<div style="display:flex;gap:8px;margin-top:4px">
+<button class="btn btn-secondary" style="flex:1;font-size:13px" onClick="{{ denyPrompt }}">Don’t Allow</button>
+<button class="btn btn-primary" style="flex:1;font-size:13px" onClick="{{ allowPrompt }}">Allow</button>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;platform&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;macOS&quot;,&quot;Windows&quot;],&quot;default&quot;:&quot;macOS&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;permissions&quot;,&quot;main&quot;,&quot;settings&quot;],&quot;default&quot;:&quot;permissions&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showRecent&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const MB = 1e6, GB = 1e9;
+function fmt(b) { return b >= GB ? (b / GB).toFixed(2) + ' GB' : b >= MB ? (b / MB).toFixed(b >= 100 * MB ? 0 : 1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB'; }
+function hhmm() { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+function iconFor(n) { const e = n.split('.').pop().toLowerCase(); return { zip: 'file-zip', gz: 'file-zip', mov: 'file-video', mp4: 'file-video', csv: 'file-csv', pdf: 'file-pdf', md: 'file-text', png: 'file-image', jpg: 'file-image' }[e] || 'file'; }
+const HOST = 'relay.example.net';
+const PERMS = [
+  { key: 'files', icon: 'folder-simple', title: 'Files & folders', desc: 'Save downloads to the folder you choose.', required: true,
+    pTitle: '“Download Helper” would like to access files in your Downloads folder.', pBody: 'Downloads are saved here. You can choose a different folder later.' },
+  { key: 'notify', icon: 'bell-simple', title: 'Notifications', desc: 'Tell you when a download finishes or fails.',
+    pTitle: '“Download Helper” would like to send you notifications.', pBody: 'Notifications may include alerts and sounds.' },
+  { key: 'background', icon: 'moon', title: 'Run in background', desc: 'Keep downloading after the window is closed.',
+    pTitle: '“Download Helper” wants to keep running in the background.', pBody: 'It stays in the TRAY and keeps downloads going when the window is closed.' },
+];
+
+class Component extends DCLogic {
+  state = this.initial(this.props.startScreen ?? 'permissions');
+
+  initial(screen) {
+    const set = screen !== 'permissions';
+    return {
+      screen, prompt: null, tick: 0, paused: false, speed: 22 * MB, latency: 42,
+      perms: { files: set ? 'granted' : 'pending', notify: set ? 'granted' : 'pending', background: 'pending' },
+      conn: set ? 'connected' : 'disconnected',
+      current: { name: 'Q4 brand assets.zip', size: 842 * MB, received: 610 * MB },
+      queue: [{ name: 'site-backup-2026-10-31.tar.gz', size: 3.8 * GB }, { name: 'interview-raw-cam-B.mov', size: 2.1 * GB }],
+      recent: [{ name: 'invoice-0412.pdf', size: 1.2 * MB, when: '09:41' }, { name: 'mockups-v3.png', size: 4.8 * MB, when: '09:32' }, { name: 'release-notes.md', size: 14e3, when: 'Yesterday' }],
+      settings: { autoConnect: true, launchAtLogin: false, notifyDone: true, simultaneous: 1, altPath: false },
+    };
+  }
+  barRef = el => { this.bar = el; this.paint(); };
+  dotRef = el => { this.dot = el; this.paint(); };
+  paint() {
+    const s = this.state, cur = s.current;
+    if (this.bar && cur) this.bar.style.width = Math.floor((cur.received / cur.size) * 100) + '%';
+    if (this.dot) this.dot.style.opacity = s.tick % 2 === 0 ? '1' : '0.35';
+  }
+  componentDidMount() { this.iv = setInterval(() => this.step(), 400); this.paint(); }
+  componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.ct); }
+  componentDidUpdate(prev) {
+    this.paint();
+    if (prev.startScreen !== this.props.startScreen) { clearTimeout(this.ct); this.setState(this.initial(this.props.startScreen ?? 'permissions')); }
+  }
+  step() {
+    this.setState(s => {
+      const n = { tick: s.tick + 1 };
+      if (s.conn === 'connected' && s.tick % 5 === 0) n.latency = 36 + Math.round(Math.random() * 14);
+      if (s.conn === 'connected' && s.current && !s.paused) {
+        const speed = 19 * MB + Math.random() * 7 * MB;
+        const received = Math.min(s.current.size, s.current.received + speed * 0.4);
+        n.speed = speed;
+        if (received >= s.current.size) {
+          n.recent = [{ name: s.current.name, size: s.current.size, when: hhmm() }, ...s.recent].slice(0, 3);
+          n.current = s.queue[0] ? { ...s.queue[0], received: 0 } : null;
+          n.queue = s.queue.slice(1);
+        } else n.current = { ...s.current, received };
+      }
+      return n;
+    });
+  }
+  connect() {
+    clearTimeout(this.ct);
+    this.setState({ conn: 'connecting' });
+    this.ct = setTimeout(() => this.setState({ conn: 'connected' }), 1800);
+  }
+  disconnect() { clearTimeout(this.ct); this.setState({ conn: 'disconnected' }); }
+  answer(allow) { this.setState(s => ({ prompt: null, perms: { ...s.perms, [s.prompt]: allow ? 'granted' : 'denied' } })); }
+  setSetting(k, v) { this.setState(s => ({ settings: { ...s.settings, [k]: v } })); }
+
+  renderVals() {
+    const s = this.state, isWin = (this.props.platform ?? 'macOS') === 'Windows';
+    const osName = isWin ? 'Windows' : 'macOS', settingsName = isWin ? 'Settings' : 'System Settings';
+    const tray = isWin ? 'system tray' : 'menu bar';
+    const rule = 'inset 0 -1px 0 var(--color-neutral-900)';
+    const permList = PERMS.map((p, i) => {
+      const st = s.perms[p.key];
+      return { ...p, isPending: st === 'pending', isGranted: st === 'granted', isDenied: st === 'denied', notGranted: st !== 'granted',
+        notFirst: i > 0, onAsk: () => this.setState({ prompt: p.key }) };
+    });
+    const prompt = PERMS.find(p => p.key === s.prompt);
+
+    const c = s.conn, pulse = s.tick % 2 === 0;
+    const status = {
+      connected: { t: 'Connected', sub: `${HOST} · ${s.latency} ms`, bg: 'var(--color-accent)', border: 'var(--color-accent)', sh: '0 0 0 3px var(--color-accent-900), 0 0 10px var(--color-accent)', op: 1, cls: 'btn btn-secondary', icon: 'plugs', lbl: 'Disconnect' },
+      connecting: { t: 'Connecting…', sub: `Reaching ${HOST}`, bg: 'var(--color-accent-400)', border: 'var(--color-accent-400)', sh: '0 0 0 3px var(--color-accent-900)', op: pulse ? 1 : 0.35, cls: 'btn btn-secondary', icon: 'x', lbl: 'Cancel' },
+      disconnected: { t: 'Disconnected', sub: 'Downloads pause until you reconnect.', bg: 'transparent', border: 'var(--color-neutral-600)', sh: 'none', op: 1, cls: 'btn btn-primary', icon: 'plugs-connected', lbl: 'Connect' },
+    }[c];
+
+    const cur = s.current, live = c === 'connected' && !s.paused;
+    let dlState = '';
+    if (cur) {
+      if (s.paused) dlState = 'Paused';
+      else if (c !== 'connected') dlState = 'Waiting for connection';
+      else { const sec = (cur.size - cur.received) / s.speed; dlState = `${fmt(s.speed)}/s · ${sec < 60 ? Math.max(1, Math.round(sec)) + ' s' : Math.round(sec / 60) + ' min'} left`; }
+    }
+    const savePath = s.settings.altPath ? (isWin ? 'D:\\Incoming' : '~/Desktop/Incoming') : (isWin ? 'C:\\Users\\you\\Downloads' : '~/Downloads');
+
+    const toggles = [
+      { key: 'autoConnect', label: 'Connect on launch', sub: 'Reconnect when the app starts.' },
+      { key: 'launchAtLogin', label: 'Open at login', sub: `Start quietly in the ${tray}.` },
+      { key: 'notifyDone', label: 'Notify when finished', sub: s.perms.notify === 'granted' ? 'One alert per completed file.' : 'Needs notification permission.' },
+    ];
+    const toggleList = toggles.map((t, i) => {
+      const on = !!s.settings[t.key];
+      return { ...t, on, off: !on, notFirst: i > 0,
+        onToggle: () => this.setSetting(t.key, !on) };
+    });
+
+    return {
+      isMac: !isWin, isWin, osName, settingsName,
+      onPermissions: s.screen === 'permissions', onMain: s.screen === 'main', onSettings: s.screen === 'settings',
+      permList,
+      continueDisabled: s.perms.files !== 'granted',
+      continueHint: s.perms.files === 'granted' ? 'Optional permissions can be allowed later.' : 'Files & folders is needed to save downloads.',
+      onContinue: () => { this.setState({ screen: 'main' }); if (s.settings.autoConnect && c === 'disconnected') this.connect(); },
+      hasPrompt: !!prompt, promptTitle: prompt ? prompt.pTitle : '', promptBody: prompt ? prompt.pBody.replace('TRAY', tray) : '',
+      allowPrompt: () => this.answer(true), denyPrompt: () => this.answer(false),
+
+      isConnected: c === 'connected', isConnecting: c === 'connecting', isDisconnected: c === 'disconnected',
+      isLive: live, notLive: !live, barRef: this.barRef, dotRef: this.dotRef,
+      statusTitle: status.t, statusSub: status.sub, dotBg: status.bg, dotBorder: status.border, dotShadow: status.sh, dotOpacity: status.op,
+      connBtnClass: status.cls, connBtnIcon: status.icon, connBtnLabel: status.lbl,
+      onConnBtn: () => (c === 'disconnected' ? this.connect() : this.disconnect()),
+
+      hasDownload: !!cur, noDownload: !cur,
+      emptyText: c === 'connected' ? 'Nothing downloading. New files start here automatically.' : 'Connect to receive downloads.',
+      hasQueue: s.queue.length > 0, queuedLabel: `${s.queue.length} queued`,
+      dlName: cur ? cur.name : '', dlIcon: cur ? iconFor(cur.name) : 'file',
+      dlBytes: cur ? `${fmt(cur.received)} of ${fmt(cur.size)}` : '',
+      dlPct: cur ? Math.floor((cur.received / cur.size) * 100) + '%' : '0%',
+      dlState, barBg: live ? 'var(--color-accent)' : 'var(--color-neutral-600)', barGlow: live ? '0 0 8px var(--color-accent)' : 'none',
+      pauseIcon: s.paused ? 'play' : 'pause', pauseLabel: s.paused ? 'Resume' : 'Pause', pauseDisabled: c !== 'connected',
+      togglePause: () => this.setState({ paused: !s.paused }),
+      cancelDl: () => this.setState(st => ({ paused: false, current: st.queue[0] ? { ...st.queue[0], received: 0 } : null, queue: st.queue.slice(1) })),
+
+      showRecent: this.props.showRecent ?? true,
+      recentList: s.recent.map(r => ({ ...r, icon: iconFor(r.name), meta: `${fmt(r.size)} · ${r.when}` })),
+      revealLabel: isWin ? 'Show in Explorer' : 'Show in Finder',
+      savePath,
+
+      openSettings: () => this.setState({ screen: 'settings' }), closeSettings: () => this.setState({ screen: 'main' }),
+      changePath: () => this.setSetting('altPath', !s.settings.altPath),
+      sim1: s.settings.simultaneous === 1, sim2: s.settings.simultaneous === 2, sim3: s.settings.simultaneous === 3,
+      setSim1: () => this.setSetting('simultaneous', 1), setSim2: () => this.setSetting('simultaneous', 2), setSim3: () => this.setSetting('simultaneous', 3),
+      toggleList,
+      quit: () => { clearTimeout(this.ct); this.setState(this.initial('permissions')); },
+    };
+  }
+}
+</script>
+</body>
+</html>
