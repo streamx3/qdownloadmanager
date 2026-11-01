@@ -6,6 +6,9 @@
 
 class AppController : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QString themePalette READ themePalette WRITE setThemePalette NOTIFY settingsChanged)
+    Q_PROPERTY(QString colorScheme READ colorScheme WRITE setColorScheme NOTIFY settingsChanged)
+    Q_PROPERTY(bool customTitleBar READ customTitleBar WRITE setCustomTitleBar NOTIFY settingsChanged)
     Q_PROPERTY(QString saveFolder READ saveFolder NOTIFY settingsChanged)
     Q_PROPERTY(bool setupComplete READ setupComplete NOTIFY settingsChanged)
     Q_PROPERTY(bool accepting READ accepting WRITE setAccepting NOTIFY settingsChanged)
@@ -28,6 +31,12 @@ public:
     explicit AppController(const QString &dataDirectory, QObject *parent = nullptr);
     ~AppController() override;
     void shutdown();
+    QString themePalette() const;
+    QString colorScheme() const;
+    bool customTitleBar() const;
+    void setThemePalette(const QString &value);
+    void setColorScheme(const QString &value);
+    void setCustomTitleBar(bool value);
     QString saveFolder() const;
     bool setupComplete() const;
     bool accepting() const;

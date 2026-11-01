@@ -9,6 +9,7 @@
 #include <QProcess>
 #include <QSaveFile>
 #include <QStandardPaths>
+#include <QStringList>
 #include <QTemporaryFile>
 
 AppController::AppController(const QString &dataDirectory, QObject *parent)
@@ -41,6 +42,25 @@ void AppController::shutdown()
     m_downloads.shutdown();
     m_settings.sync();
 }
+
+QString AppController::themePalette() const {
+    const auto value = m_settings.value("ui/palette", "blurple").toString();
+    return QStringList{"teal", "blurple", "blue", "grey"}.contains(value) ? value : "blurple";
+}
+QString AppController::colorScheme() const {
+    const auto value = m_settings.value("ui/colorScheme", "dark").toString();
+    return QStringList{"dark", "light", "system"}.contains(value) ? value : "dark";
+}
+bool AppController::customTitleBar() const { return m_settings.value("ui/customTitleBar", true).toBool(); }
+void AppController::setThemePalette(const QString &value) {
+    if (!QStringList{"teal", "blurple", "blue", "grey"}.contains(value) || value == themePalette()) return;
+    m_settings.setValue("ui/palette", value); emit settingsChanged();
+}
+void AppController::setColorScheme(const QString &value) {
+    if (!QStringList{"dark", "light", "system"}.contains(value) || value == colorScheme()) return;
+    m_settings.setValue("ui/colorScheme", value); emit settingsChanged();
+}
+void AppController::setCustomTitleBar(bool value) { m_settings.setValue("ui/customTitleBar", value); emit settingsChanged(); }
 
 QString AppController::saveFolder() const
 {

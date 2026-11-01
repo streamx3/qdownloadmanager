@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.21)
-project(QDownloadManager VERSION 0.2.0 LANGUAGES CXX)
+project(QDownloadManager VERSION 0.3.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Network Qml Quick QuickControls2 Widgets)
-qt_standard_project_setup(REQUIRES 6.5)
+find_package(Qt6 6.9 REQUIRED COMPONENTS Core Gui Network Qml Quick QuickControls2 Widgets)
+qt_standard_project_setup(REQUIRES 6.9)
 if(Qt6_VERSION VERSION_GREATER_EQUAL 6.8)
     qt_policy(SET QTP0004 NEW)
 endif()
@@ -23,11 +23,23 @@ target_include_directories(qdm_backend PUBLIC src/app)
 target_link_libraries(qdm_backend PUBLIC qdm_common Qt6::Gui)
 target_compile_definitions(qdm_backend PRIVATE QDM_EXTENSION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/extension")
 
+add_library(qdm_chrome STATIC src/app/platform/windowchrome.cpp)
+target_include_directories(qdm_chrome PUBLIC src/app)
+target_link_libraries(qdm_chrome PUBLIC Qt6::Gui)
+if(APPLE)
+    enable_language(OBJCXX)
+    target_sources(qdm_chrome PRIVATE src/app/platform/windowchrome_mac.mm)
+    target_compile_options(qdm_chrome PRIVATE "$<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>")
+    target_link_libraries(qdm_chrome PRIVATE "-framework AppKit")
+endif()
 qt_add_executable(qdownloadmanager MACOSX_BUNDLE src/app/main.cpp)
-target_link_libraries(qdownloadmanager PRIVATE qdm_backend Qt6::Quick Qt6::QuickControls2 Qt6::Widgets)
+target_link_libraries(qdownloadmanager PRIVATE qdm_backend qdm_chrome Qt6::Quick Qt6::QuickControls2 Qt6::Widgets)
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-qt_add_qml_module(qdownloadmanager URI DownloadHelper VERSION 1.0
-    QML_FILES qml/Main.qml qml/Theme.qml qml/ActionButton.qml qml/Icon.qml qml/SectionLabel.qml qml/DownloadCard.qml)
+set(QDM_QML_FILES qml/Main.qml qml/Theme.qml qml/ActionButton.qml qml/Icon.qml qml/SectionLabel.qml qml/DownloadCard.qml
+    qml/TitleBar.qml qml/WindowControls.qml qml/FrameResizer.qml)
+qt_add_qml_module(qdownloadmanager URI DownloadHelper VERSION 1.0 QML_FILES ${QDM_QML_FILES})
+qt_add_resources(qdownloadmanager dr_stein_license PREFIX "/licenses/dr_stein" BASE third_party/dr_stein
+    FILES third_party/dr_stein/LICENSE)
 set_target_properties(qdownloadmanager PROPERTIES
     MACOSX_BUNDLE_BUNDLE_NAME "Download Helper"
     MACOSX_BUNDLE_GUI_IDENTIFIER "cc.qdownloadmanager.app"
@@ -48,6 +60,21 @@ if(BUILD_TESTING)
     qt_add_executable(qdm-tests tests/backend_test.cpp)
     target_link_libraries(qdm-tests PRIVATE qdm_backend Qt6::Test)
     add_test(NAME backend COMMAND qdm-tests)
+
+    # Bundle the actual UI into a separate test executable, with its local Theme singleton.
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/ui-test-qmldir" "singleton Theme 1.0 Theme.qml\n")
+    set(QDM_UI_TEST_QRC "<RCC><qresource prefix=\"/qdm-ui-test\">\n")
+    foreach(qml_file IN LISTS QDM_QML_FILES)
+        get_filename_component(qml_name "${qml_file}" NAME)
+        string(APPEND QDM_UI_TEST_QRC "<file alias=\"${qml_name}\">${CMAKE_CURRENT_SOURCE_DIR}/${qml_file}</file>\n")
+    endforeach()
+    string(APPEND QDM_UI_TEST_QRC "<file alias=\"qmldir\">${CMAKE_CURRENT_BINARY_DIR}/ui-test-qmldir</file></qresource></RCC>")
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/ui-test.qrc" "${QDM_UI_TEST_QRC}")
+    qt_add_resources(QDM_UI_TEST_RESOURCES "${CMAKE_CURRENT_BINARY_DIR}/ui-test.qrc")
+    qt_add_executable(qdm-ui-tests tests/ui_test.cpp ${QDM_UI_TEST_RESOURCES})
+    target_link_libraries(qdm-ui-tests PRIVATE qdm_backend qdm_chrome Qt6::Quick Qt6::QuickControls2 Qt6::Widgets Qt6::Test)
+    add_test(NAME ui COMMAND qdm-ui-tests)
+    set_tests_properties(ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 
 install(TARGETS qdownloadmanager BUNDLE DESTINATION . RUNTIME DESTINATION bin)

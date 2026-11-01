@@ -3,7 +3,8 @@
 A Qt 6 desktop app, a small Chrome Native Messaging bridge, and a Manifest V3
 extension for saving images in one click. The QML interface follows the Nocturne
 HTML design in `Design/mockup/`: compact dark surfaces, outlined purple actions,
-connection status, a download queue, recent files, and settings.
+connection status, a download queue, recent files, and settings. Themes and the
+integrated window header follow [Dr Stein](https://github.com/streamx3/dr_stein).
 
 ```text
 Image button → extension service worker → Chrome native host → local IPC → Qt app
@@ -30,6 +31,10 @@ remote relay server, account, or listening TCP port in the product.
   refresh their status from the app every three seconds.
 - Safe filenames, temporary files, disconnect cleanup, and
   request/response correlation. Clearing history never deletes saved files.
+- Four Dr Stein palettes (teal, blurple, Apple blue, grey), each with dark/light
+  schemes and a system-following option. Theme changes apply immediately.
+- An integrated title bar: native traffic lights on macOS; caption controls on
+  Windows/Linux. The header stays visible while the content scrolls.
 - Optional system-tray/menu-bar behavior and completion notifications where the
   OS supports them. Closing the app normally quits unless background mode is on.
 - Local native-host registration from the setup screen or a Python utility.
@@ -38,7 +43,7 @@ remote relay server, account, or listening TCP port in the product.
 
 ## Build
 
-Requires CMake 3.21+, a C++17 compiler, and Qt 6.5+ with Core, Gui, Network, Qml,
+Requires CMake 3.21+, a C++17 compiler, and Qt 6.9+ with Core, Gui, Network, Qml,
 Quick, Quick Controls 2, Widgets, and Test (when testing is enabled). Node 20+ and
 Python 3.10+ are only needed for tests and the optional registration utility.
 The extension has no npm dependencies and requires Chrome 116+.
@@ -82,11 +87,44 @@ and blocks new requests; Chrome's previously granted permission remains until yo
 revoke it in the browser. The default network grants cover JoyReactor, `reactor.cc`, Reddit, and its
 `i.redd.it`, `preview.redd.it`, and `external-preview.redd.it` image hosts.
 
+### Appearance and window controls
+
+Settings → Appearance offers **Teal**, **Blurple**, **Blue**, and **Grey**, plus
+**Dark**, **Light**, and **System**. The header's sun/moon button switches between
+light and dark. Preferences persist independently from Dr Stein. Existing users
+keep the familiar blurple/dark default; all four palette values come from Dr Stein.
+
+The integrated title bar is enabled by default. On macOS it retains native
+traffic lights, window resizing, zoom/fullscreen, and the system frame, while
+hiding the separate title and blending the header into the app. Windows uses an
+expanded client area with app-drawn caption buttons. Linux uses a frameless
+window with resize edges. Drag the header to move the window; non-macOS headers
+also support double-click maximize/restore. Close still honors **Keep running
+when closed**; Quit exits the app normally.
+
+Turn off **Integrated title bar** in Appearance and restart to restore the system
+title bar. For a single launch, pass `--native-title-bar`. Qt 6.9+ is now required
+for expanded-client-area and safe-area support. macOS has been exercised locally;
+Windows and Linux native window-manager behavior still needs platform testing.
+Windows Snap Layouts on hovering our maximize button are not implemented.
+
+The MIT-licensed theme and window code provenance is recorded in
+[third_party/dr_stein](third_party/dr_stein/README.md). Dr Stein itself is unchanged
+and is not a build dependency. The extension's compact overlay retains its current
+appearance; these theme controls apply to the desktop app.
+
 ### Updating an already loaded extension
 
 After editing/updating the extension folder, click **Reload** on Download Helper
 at `chrome://extensions`, then refresh the website page. The desktop app does
 not need rebuilding for extension-only changes.
+
+Extension 0.2.2 fixes stale image-button overlays left in already-open pages by
+extension reloads. It removes older overlays before installing the current one,
+clears hover when the pointer leaves the page or Chrome loses focus, and limits
+mouse visibility to the image under the cursor. Keyboard focus still reveals its
+button for accessibility. Reload the extension and refresh an affected page once
+when upgrading from older versions.
 
 Version 0.2.1 adds Reddit. Reload the extension and refresh any open Reddit tabs;
 no desktop-app rebuild is required. Chrome may ask to approve access to the new
@@ -160,6 +198,12 @@ python3 tests/integration.py \
   --host build/qdownloadmanager.app/Contents/MacOS/qdm-native-host
 ```
 
+The Qt UI tests load the actual QML, click the theme/settings controls, render
+all eight palette/scheme combinations, check system-following behavior and native
+title-bar fallback, and verify close-to-tray behavior. On macOS, run
+`QT_QUICK_BACKEND=software build/qdm-ui-tests` to additionally check native
+traffic-light metrics; CTest runs its portable offscreen version.
+
 The integration test uses isolated settings, an offscreen UI, the real bridge
 process, and a temporary loopback HTTP fixture server. It checks startup order,
 multi-chunk byte equality, queue advancement, name collisions, disconnect cleanup,
@@ -193,7 +237,8 @@ Add `localhost` to the extension's enabled websites, visit
 The 40px avatar should have no button. Try pausing/cancelling a larger transfer,
 closing/reopening the app, and downloading the same image twice.
 
-For an isolated UI capture, use `--data-dir`, `--screenshot`, and `--quit-after`:
+For an isolated UI capture, use `--data-dir`, `--screenshot`, and `--quit-after`
+(add `--settings` to capture Appearance):
 
 ```sh
 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \

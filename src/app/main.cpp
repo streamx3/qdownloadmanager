@@ -2,6 +2,7 @@
 #include "localendpoint.h"
 #include "localserver.h"
 #include "identity.h"
+#include "platform/windowchrome.h"
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QDir>
@@ -28,6 +29,7 @@ int main(int argc, char *argv[])
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addOptions({{"settings", "Open the Settings screen."},
+                       {"native-title-bar", "Use the system title bar for this launch."},
                        {"data-dir", "Use an isolated settings and IPC directory.", "path"},
                        {"screenshot", "Save a window capture after rendering.", "path"},
                        {"quit-after", "Exit after a specified number of milliseconds (smoke tests).", "milliseconds"}});
@@ -58,7 +60,10 @@ int main(int argc, char *argv[])
     QIcon icon(pixmap);
     app.setWindowIcon(icon);
 
+    WindowChrome windowChrome;
     QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("windowChrome", &windowChrome);
+    engine.rootContext()->setContextProperty("startupCustomTitleBar", controller.customTitleBar() && !parser.isSet("native-title-bar"));
     engine.rootContext()->setContextProperty("backend", &controller);
     engine.rootContext()->setContextProperty("trayAvailable", QSystemTrayIcon::isSystemTrayAvailable());
     engine.loadFromModule("DownloadHelper", "Main");

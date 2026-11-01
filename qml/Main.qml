@@ -14,6 +14,42 @@ ApplicationWindow {
     color: Theme.background
     font.family: Theme.fontFamily
     property bool settingsOpen: false
+    readonly property bool customChrome: startupCustomTitleBar
+    readonly property bool framelessChrome: customChrome && Qt.platform.os !== "osx" && Qt.platform.os !== "windows"
+    property bool chromeReady: false
+    property var chromeMetrics: ({})
+    readonly property color themeBackground: Theme.background
+    readonly property bool darkTheme: Theme.dark
+    flags: !customChrome ? Qt.Window
+         : framelessChrome ? (Qt.Window | Qt.FramelessWindowHint)
+         : (Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint)
+    // Our header occupies the safe title-bar band rather than starting below it.
+    topPadding: customChrome ? 0 : window.SafeArea.margins.top
+    palette.window: Theme.background
+    palette.windowText: Theme.text
+    palette.base: Theme.surface
+    palette.text: Theme.text
+    palette.button: Theme.surface
+    palette.buttonText: Theme.text
+    palette.highlight: Theme.accentDark
+    palette.highlightedText: Theme.accentText
+    Binding { target: Theme; property: "paletteName"; value: backend.themePalette }
+    Binding { target: Theme; property: "colorScheme"; value: backend.colorScheme }
+    function measureChrome() { if (chromeReady && customChrome) chromeMetrics = windowChrome.metrics(window) }
+    Component.onCompleted: {
+        if (customChrome) windowChrome.attach(window)
+        chromeReady = true
+        windowChrome.setDark(window, Theme.dark)
+        Qt.callLater(measureChrome)
+    }
+    Connections {
+        target: Theme
+        function onDarkChanged() { if (window.chromeReady) windowChrome.setDark(window, Theme.dark) }
+    }
+    onVisibilityChanged: Qt.callLater(measureChrome)
+    Timer { interval: 150; running: true; onTriggered: window.measureChrome() }
+    Shortcut { sequences: [StandardKey.Preferences]; onActivated: window.settingsOpen = !window.settingsOpen }
+    Shortcut { sequences: [StandardKey.Close]; onActivated: window.close() }
     readonly property string connectionTitle: backend.serverError ? "Connection unavailable" : !backend.accepting ? "New downloads paused" : backend.browserCount > 0 ? "Chrome connected" : "Waiting for Chrome"
     readonly property string connectionDetail: backend.serverError ? backend.serverError : backend.browserCount > 0 ? "This computer · " + backend.browserCount + (backend.browserCount === 1 ? " browser connection" : " browser connections") : "Open the extension and click Connect."
 
@@ -106,9 +142,28 @@ ApplicationWindow {
         anchors.fill: parent
         spacing: 0
 
+        TitleBar {
+            id: titleBar
+            objectName: "titleBar"
+            Layout.fillWidth: true
+            Layout.preferredHeight: window.customChrome && window.chromeMetrics.lightsCenterY !== undefined
+                ? Math.max(implicitHeight, window.chromeMetrics.lightsCenterY * 2) : implicitHeight
+            window: window
+            customChrome: window.customChrome
+            nativeButtons: windowChrome.nativeButtons
+            leftInset: !window.customChrome ? 0 : window.chromeMetrics.leftInset !== undefined ? window.chromeMetrics.leftInset : windowChrome.leftInset
+            settingsOpen: window.settingsOpen
+            setupComplete: backend.setupComplete
+            dark: Theme.dark
+            onOpenSettings: window.settingsOpen = true
+            onGoBack: window.settingsOpen = false
+            onAddLink: urlDialog.open()
+            onToggleTheme: backend.colorScheme = Theme.dark ? "light" : "dark"
+        }
+
         // Setup replaces the mockup's simulated OS permission prompts with real actions.
         ScrollView {
-            visible: !backend.setupComplete
+            visible: !backend.setupComplete && !window.settingsOpen
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
@@ -161,7 +216,7 @@ ApplicationWindow {
                         }
                     }
                     ActionButton { text: "Start downloading"; primary: true; Layout.fillWidth: true; implicitHeight: 38; onClicked: backend.finishSetup() }
-                    BodyText { text: "JoyReactor .cc and .com are enabled by default. You can manage websites in the extension."; font.pixelSize: 11; color: Theme.dim }
+                    BodyText { text: "JoyReactor and Reddit are enabled by default. You can manage websites in the extension."; font.pixelSize: 11; color: Theme.dim }
                 }
             }
         }
@@ -182,13 +237,6 @@ ApplicationWindow {
                         Layout.margins: 16
                         Layout.fillWidth: true
                         spacing: 20
-                        RowLayout {
-                            spacing: 10
-                            Rectangle { width: 28; height: 28; radius: 7; color: Theme.accentDark; Icon { anchors.centerIn: parent; color: Theme.accentText; width: 16; height: 16 } }
-                            TitleText { text: "Download Helper"; Layout.fillWidth: true }
-                            ActionButton { symbol: "plus"; hint: "Download a link"; ghost: true; onClicked: urlDialog.open() }
-                            ActionButton { symbol: "settings"; hint: "Settings"; onClicked: window.settingsOpen = true }
-                        }
                         Card {
                             implicitHeight: statusCard.implicitHeight + 28
                             ColumnLayout {
@@ -294,15 +342,10 @@ ApplicationWindow {
         }
 
         ColumnLayout {
-            visible: backend.setupComplete && window.settingsOpen
+            visible: window.settingsOpen
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 0
-            RowLayout {
-                Layout.margins: 12
-                ActionButton { symbol: "back"; hint: "Back to downloads"; ghost: true; onClicked: window.settingsOpen = false }
-                TitleText { text: "Settings" }
-            }
             ScrollView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -314,6 +357,63 @@ ApplicationWindow {
                         Layout.margins: 16
                         Layout.fillWidth: true
                         spacing: 18
+                        SectionLabel { text: "Appearance" }
+                        Card {
+                            implicitHeight: appearanceSettings.implicitHeight + 24
+                            ColumnLayout {
+                                id: appearanceSettings
+                                anchors { fill: parent; margins: 12 }
+                                spacing: 12
+                                TitleText { text: "Palette"; font.pixelSize: 13 }
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 5
+                                    Repeater {
+                                        model: [{name: "Teal", value: "teal"}, {name: "Blurple", value: "blurple"}, {name: "Blue", value: "blue"}, {name: "Grey", value: "grey"}]
+                                        ActionButton {
+                                            required property var modelData
+                                            objectName: "palette_" + modelData.value
+                                            text: modelData.name; implicitWidth: 64; Layout.fillWidth: true
+                                            primary: backend.themePalette === modelData.value
+                                            onClicked: backend.themePalette = modelData.value
+                                        }
+                                    }
+                                }
+                                TitleText { text: "Color scheme"; font.pixelSize: 13 }
+                                RowLayout {
+                                    spacing: 5
+                                    Repeater {
+                                        model: [{name: "Dark", value: "dark"}, {name: "Light", value: "light"}, {name: "System", value: "system"}]
+                                        ActionButton {
+                                            required property var modelData
+                                            objectName: "scheme_" + modelData.value
+                                            text: modelData.name; primary: backend.colorScheme === modelData.value
+                                            onClicked: backend.colorScheme = modelData.value
+                                        }
+                                    }
+                                }
+                                Rectangle { Layout.fillWidth: true; height: 1; color: Theme.inset }
+                                RowLayout {
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        TitleText { text: "Integrated title bar"; font.pixelSize: 13 }
+                                        BodyText { text: "Blend the window header into the app. Applies after restarting."; font.pixelSize: 11 }
+                                    }
+                                    Toggle {
+                                        objectName: "customTitleBarToggle"
+                                        checked: backend.customTitleBar
+                                        Accessible.name: "Integrated title bar"
+                                        onToggled: backend.customTitleBar = checked
+                                    }
+                                }
+                                BodyText {
+                                    visible: backend.customTitleBar !== window.customChrome
+                                    text: "Restart Download Helper to apply the title bar change."
+                                    font.pixelSize: 11
+                                    color: Theme.accentText
+                                }
+                            }
+                        }
                         SectionLabel { text: "Chrome connection" }
                         Card {
                             implicitHeight: connectionSettings.implicitHeight + 24
@@ -403,4 +503,5 @@ ApplicationWindow {
             }
         }
     }
+    FrameResizer { window: window; visible: window.framelessChrome; z: 100 }
 }

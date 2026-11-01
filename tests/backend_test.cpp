@@ -203,6 +203,20 @@ private slots:
         QVERIFY(restored.recent().isEmpty());
         QVERIFY(QFileInfo::exists(directory.filePath("image.png")));
     }
+    void appearanceSettingsPersistAndRejectInvalidValues() {
+        QTemporaryDir directory;
+        {
+            AppController controller(directory.path());
+            QCOMPARE(controller.themePalette(), "blurple"); QCOMPARE(controller.colorScheme(), "dark");
+            QVERIFY(controller.customTitleBar());
+            controller.setThemePalette("teal"); controller.setColorScheme("system"); controller.setCustomTitleBar(false);
+            controller.setThemePalette("missing"); controller.setColorScheme("missing");
+            QCOMPARE(controller.themePalette(), "teal"); QCOMPARE(controller.colorScheme(), "system");
+        }
+        AppController restored(directory.path());
+        QCOMPARE(restored.themePalette(), "teal"); QCOMPARE(restored.colorScheme(), "system");
+        QVERIFY(!restored.customTitleBar());
+    }
     void setupAndAcceptingGateNewDownloads() {
         QTemporaryDir directory;
         AppController controller(directory.path());
