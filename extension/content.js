@@ -1,6 +1,12 @@
 (() => {
-  if (globalThis.__qdmInstalled) { globalThis.__qdmRefresh?.(); return; }
+  const VERSION = "0.2.2";
+  if (globalThis.__qdmVersion === VERSION && document.querySelector("#qdm-image-buttons")) { globalThis.__qdmRefresh?.(); return; }
+  globalThis.__qdmDestroy?.();
+  // Reloading an unpacked extension invalidates its old JS context, but leaves
+  // that context's DOM behind. Remove every old overlay before installing ours.
+  for (const stale of document.querySelectorAll("#qdm-image-buttons")) stale.remove();
   globalThis.__qdmInstalled = true;
+  globalThis.__qdmVersion = VERSION;
   const rules = globalThis.QdmRules;
   const host = document.createElement("div");
   host.id = "qdm-image-buttons";
@@ -35,7 +41,12 @@
     busy: '<svg class="spinner" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-8-8"/></svg>',
     error: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10m0 5v1"/></svg>'
   };
-  let enabled = false, pending = false, checking = false, noticeTimer, checkTimer;
+  let enabled = false, pending = false, checking = false, destroyed = false, noticeTimer, checkTimer, frameId;
+  const listeners = [];
+  function listen(target, event, handler, options) {
+    target.addEventListener(event, handler, options);
+    listeners.push(() => target.removeEventListener(event, handler, options));
+  }
   let imageHosts = [], pointer = null;
   function toast(text) {
     clearTimeout(noticeTimer);
@@ -82,7 +93,7 @@
   }
   async function checkFiles() {
     checkTimer = null;
-    if (checking || !enabled || document.hidden) return;
+    if (destroyed || checking || !enabled || document.hidden) return;
     checking = true;
     try {
       const visible = [...entries.values()].filter(entry => !entry.button.hidden && entry.url);
@@ -110,7 +121,7 @@
       }
     } finally { checking = false; }
   }
-  function scheduleCheck() { if (!checkTimer) checkTimer = setTimeout(checkFiles, 250); }
+  function scheduleCheck() { if (!destroyed && !checkTimer) checkTimer = setTimeout(checkFiles, 250); }
   function addImages(scope) {
     if (![Node.ELEMENT_NODE, Node.DOCUMENT_FRAGMENT_NODE].includes(scope.nodeType) || scope === host) return;
     const images = scope.matches?.("img") ? [scope] : scope.querySelectorAll("img");
@@ -165,6 +176,7 @@
   function layout() {
     pending = false;
     const underPointer = hitImage();
+    let hoveredEntry = null;
     for (const [image, entry] of entries) {
       const { button } = entry;
       if (!image.isConnected) { resize.unobserve(image); button.remove(); entries.delete(image); continue; }
@@ -177,17 +189,20 @@
         && (image.checkVisibility?.({ checkOpacity: true, checkVisibilityCSS: true }) ?? true);
       if (button.hidden && visible) scheduleCheck();
       button.hidden = !visible;
-      const hovered = pointer && pointer.x >= rect.left && pointer.x < rect.right && pointer.y >= rect.top && pointer.y < rect.bottom
-        && (underPointer === image || containsImage(underPointer, image)
-          || (underPointer === host && entry.hover));
-      button.toggleAttribute("data-hover", Boolean(visible && hovered));
+      const inside = pointer && pointer.x >= rect.left && pointer.x < rect.right && pointer.y >= rect.top && pointer.y < rect.bottom;
+      const hovered = visible && pointer && ((underPointer === host && entry.hover)
+        || (inside && (underPointer === image
+          || (getComputedStyle(image).pointerEvents === "none" && containsImage(underPointer, image)))));
+      if (hovered) hoveredEntry = entry;
       if (visible) {
         button.style.left = `${Math.max(4, Math.min(innerWidth - 38, rect.right - 38))}px`;
         button.style.top = `${Math.max(4, rect.top + 6)}px`;
       }
     }
+    // Only the image actually under the pointer owns a visible mouse control.
+    for (const entry of entries.values()) entry.button.toggleAttribute("data-hover", entry === hoveredEntry);
   }
-  function schedule() { if (!pending) { pending = true; requestAnimationFrame(layout); } }
+  function schedule() { if (!destroyed && !pending) { pending = true; frameId = requestAnimationFrame(layout); } }
   async function refresh() {
     try {
       const settings = await chrome.storage.local.get(rules.DEFAULTS);
@@ -207,15 +222,24 @@
   }
   const observer = new MutationObserver(onMutations);
   observer.observe(document.documentElement, observation);
-  document.addEventListener("pointermove", event => { pointer = { x: event.clientX, y: event.clientY }; schedule(); }, { passive: true });
-  document.addEventListener("pointerleave", () => { pointer = null; schedule(); });
-  document.addEventListener("visibilitychange", () => { schedule(); scheduleCheck(); });
-  document.addEventListener("load", schedule, true);
-  document.addEventListener("scroll", schedule, { capture: true, passive: true });
-  window.addEventListener("resize", schedule, { passive: true });
-  window.addEventListener("focus", scheduleCheck);
-  chrome.storage.onChanged.addListener((changes, area) => { if (area === "local" && (changes.sites || changes.imageHosts)) refresh(); });
-  setInterval(() => {
+  function clearPointer() {
+    pointer = null;
+    for (const entry of entries.values()) entry.hover = false;
+    schedule();
+  }
+  listen(document, "pointermove", event => { pointer = { x: event.clientX, y: event.clientY }; schedule(); }, { passive: true });
+  listen(document, "pointerleave", clearPointer);
+  listen(document, "pointerout", event => { if (!event.relatedTarget) clearPointer(); });
+  listen(document, "visibilitychange", () => { if (document.hidden) clearPointer(); schedule(); scheduleCheck(); });
+  listen(document, "load", schedule, true);
+  listen(document, "scroll", schedule, { capture: true, passive: true });
+  listen(window, "resize", schedule, { passive: true });
+  listen(window, "focus", scheduleCheck);
+  listen(window, "blur", clearPointer);
+  const settingsChanged = (changes, area) => { if (area === "local" && (changes.sites || changes.imageHosts)) refresh(); };
+  chrome.storage.onChanged.addListener(settingsChanged);
+  const interval = setInterval(() => {
+    if (!host.isConnected) { destroy(); return; }
     if (!enabled || document.hidden) return;
     // A custom element can attach its root after insertion without a document
     // mutation. Rescan at the status cadence, not on every pointer movement.
@@ -229,6 +253,23 @@
     for (const shadow of shadowObservers.keys()) addImages(shadow);
     schedule(); checkFiles();
   }, 3000);
+  function destroy() {
+    if (destroyed) return;
+    destroyed = true;
+    clearInterval(interval); clearTimeout(checkTimer); clearTimeout(noticeTimer); cancelAnimationFrame(frameId);
+    observer.disconnect(); resize.disconnect();
+    for (const [shadow, observer] of shadowObservers) {
+      observer.disconnect(); shadow.removeEventListener("load", schedule, true); shadow.removeEventListener("scroll", schedule, true);
+    }
+    shadowObservers.clear(); entries.clear();
+    for (const remove of listeners) remove();
+    try { chrome.storage.onChanged.removeListener?.(settingsChanged); } catch { /* Old extension context was invalidated. */ }
+    host.remove();
+    if (globalThis.__qdmDestroy === destroy) {
+      delete globalThis.__qdmInstalled; delete globalThis.__qdmVersion; delete globalThis.__qdmRefresh; delete globalThis.__qdmDestroy;
+    }
+  }
+  globalThis.__qdmDestroy = destroy;
   addImages(document.documentElement);
   refresh();
 })();

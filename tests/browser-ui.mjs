@@ -26,11 +26,20 @@ try {
       storage: { local: { async get(defaults) { return defaults; } }, onChanged: { addListener() {} } }
     };
   });
+  // Old versions leave their always-visible overlay in the page after reload.
+  await page.evaluate(() => {
+    for (let i = 0; i < 2; i++) {
+      const stale = document.createElement('div'); stale.id = 'qdm-image-buttons';
+      stale.attachShadow({mode:'closed'}).innerHTML = '<button style="position:fixed;top:20px;right:20px;opacity:1">Old download button</button>';
+      document.documentElement.append(stale);
+    }
+  });
   await page.addScriptTag({ content: await readFile(new URL("../extension/rules.js", import.meta.url), "utf8") });
   await page.addScriptTag({ content: await readFile(new URL("../extension/content.js", import.meta.url), "utf8") });
   const button = page.locator("#qdm-image-buttons button:not([hidden])");
   await button.waitFor();
   assert.equal(await button.count(), 1, "small avatar must be ignored");
+  assert.equal(await page.locator('#qdm-image-buttons').count(), 1, "reload removes stale overlays");
   const opacity = () => button.evaluate(node => getComputedStyle(node).opacity);
   assert.equal(await opacity(), "0");
   await page.locator("#art").hover();
@@ -56,7 +65,30 @@ try {
   // Lazy replacement keeps one button and queries the new original URL.
   await page.evaluate(() => document.querySelector('#art').src = "https://joyreactor.cc/test.svg?new");
   await page.waitForFunction(() => calls.some(call => call.urls?.includes("https://joyreactor.cc/test.svg?new")));
+  // A second large image must stay transparent while the first is hovered.
+  await page.evaluate(() => {
+    const second = document.createElement('img'); second.id = 'second'; second.width = 300; second.height = 200;
+    second.src = 'https://joyreactor.cc/test.svg?second'; second.style.display = 'block'; document.body.append(second);
+  });
+  await page.waitForFunction(() => document.querySelector('#qdm-image-buttons').shadowRoot.querySelectorAll('button:not([hidden])').length === 2);
+  await page.locator('#art').hover();
+  await page.waitForTimeout(180);
+  const states = () => page.evaluate(() => [...document.querySelector('#qdm-image-buttons').shadowRoot.querySelectorAll('button:not([hidden])')].map(button => getComputedStyle(button).opacity));
+  // Remove keyboard focus from the previous assertion before checking mouse-only behavior.
+  await page.mouse.click(10, 10); await page.locator('#art').hover(); await page.waitForTimeout(180);
+  assert.deepEqual(await states(), ['1', '0']);
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await page.waitForTimeout(180);
+  assert.deepEqual(await states(), ['0', '0'], 'leaving Chrome must clear hover visibility');
+  await page.mouse.move(10, 10); await page.waitForTimeout(180);
+  assert.deepEqual(await states(), ['0', '0']);
+  // Re-injection in the same context cleans up listeners and creates only one overlay.
+  await page.evaluate(() => { window.__qdmVersion = 'old'; });
+  await page.addScriptTag({ content: await readFile(new URL("../extension/content.js", import.meta.url), "utf8") });
+  await page.waitForFunction(() => document.querySelector('#qdm-image-buttons').shadowRoot.querySelectorAll('button:not([hidden])').length === 2);
+  assert.equal(await page.locator('#qdm-image-buttons').count(), 1);
+  assert.deepEqual(await states(), ['0', '0']);
   assert.deepEqual(errors, []);
   if (process.env.QDM_SCREENSHOT) await page.screenshot({ path: process.env.QDM_SCREENSHOT });
-  console.log("PASS: hover transparency, keyboard focus, spinner, persistent checkmark, disk refresh, lazy-image replacement");
+  console.log("PASS: hover transparency, stale-overlay cleanup, single-image hover, blur cleanup, keyboard focus, spinner, checkmark, disk refresh, lazy images");
 } finally { await browser.close(); }

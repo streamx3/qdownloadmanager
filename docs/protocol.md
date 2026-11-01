@@ -110,3 +110,11 @@ requests. Signed external-preview URLs remain unchanged. The worker validates
 the sender and resolved host as usual; CDN fetches set `Accept: image/*` along
 with the source-page referrer. No gallery/API JSON or browser-session secrets are
 sent to the desktop app. Galleries are handled one visible image at a time.
+
+Extension 0.2.2 also versions its content-script overlay. Reloading an unpacked
+extension can leave old content-script DOM behind, so installation removes stale
+overlay hosts and same-context upgrades disconnect their observers/listeners.
+A detached host cleans up its timers. Mouse visibility belongs to one image at
+a time and clears on pointer exit, hidden pages, or window blur; keyboard focus
+continues to reveal a button. This is UI lifecycle handling, with no protocol or
+native transfer changes.
