@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(QDownloadManager VERSION 0.3.3 LANGUAGES CXX)
+project(QDownloadManager VERSION 0.3.4 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -36,7 +36,7 @@ qt_add_executable(qdownloadmanager MACOSX_BUNDLE src/app/main.cpp)
 target_link_libraries(qdownloadmanager PRIVATE qdm_backend qdm_chrome Qt6::Quick Qt6::QuickControls2 Qt6::Widgets)
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 set(QDM_QML_FILES qml/Main.qml qml/Theme.qml qml/ActionButton.qml qml/Icon.qml qml/SectionLabel.qml qml/DownloadCard.qml
-    qml/TitleBar.qml qml/WindowControls.qml qml/FrameResizer.qml)
+    qml/TitleBar.qml qml/WindowControls.qml qml/FrameResizer.qml qml/SettingsGlyph.qml)
 qt_add_qml_module(qdownloadmanager URI DownloadHelper VERSION 1.0 QML_FILES ${QDM_QML_FILES})
 qt_add_resources(qdownloadmanager dr_stein_license PREFIX "/licenses/dr_stein" BASE third_party/dr_stein
     FILES third_party/dr_stein/LICENSE)

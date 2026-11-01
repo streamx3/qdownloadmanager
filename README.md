@@ -129,6 +129,10 @@ toolbar, extension manager, and page headers. Source and regeneration details
 are in [assets/icons](assets/icons/README.md). The header's +, moon, and settings
 glyphs are centered within their buttons, and the moon uses a corrected crescent.
 
+App 0.3.4 uses the supplied Icons8 settings gear with the current theme's glyph
+color. Extension 0.2.7 removes the desktop artwork's transparent outer padding
+from Chrome's icons, so the squircle fills each icon canvas edge to edge.
+
 ### Updating an already loaded extension
 
 After editing/updating the extension folder, click **Reload** on Download Helper

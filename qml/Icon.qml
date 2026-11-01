@@ -6,6 +6,14 @@ Canvas {
     property color color: Theme.muted
     implicitWidth: 18
     implicitHeight: 18
+    SettingsGlyph {
+        visible: root.name === "settings"
+        color: root.color
+        scale: Math.min(root.width, root.height) / 50
+        transformOrigin: Item.TopLeft
+        x: (root.width - 50 * scale) / 2
+        y: (root.height - 50 * scale) / 2
+    }
     onNameChanged: requestPaint()
     onColorChanged: requestPaint()
     onWidthChanged: requestPaint()
@@ -13,6 +21,7 @@ Canvas {
     onPaint: {
         const c = getContext("2d")
         c.reset(); c.scale(width / 24, height / 24)
+        if (name === "settings") return
         c.strokeStyle = color; c.lineWidth = 1.65; c.lineCap = "round"; c.lineJoin = "round"
         function line(points) { c.beginPath(); c.moveTo(points[0], points[1]); for (let i = 2; i < points.length; i += 2) c.lineTo(points[i], points[i+1]); c.stroke() }
         if (name === "download") { line([12,3,12,16]); line([7,11,12,16,17,11]); line([4,19,20,19]) }
@@ -38,7 +47,6 @@ Canvas {
         else if (name === "image") { line([3,4,21,4,21,20,3,20,3,4]); line([4,17,9,12,13,16,16,13,21,18]); c.beginPath(); c.arc(15,9,1.5,0,Math.PI*2); c.stroke() }
         else if (name === "search") { c.beginPath(); c.arc(10,10,6,0,Math.PI*2); c.stroke(); line([15,15,21,21]) }
         else if (name === "link") { line([9,15,15,9]); c.beginPath(); c.arc(15,8,5,Math.PI,Math.PI*2.5); c.stroke(); c.beginPath(); c.arc(9,16,5,0,Math.PI*1.5); c.stroke() }
-        else if (name === "settings") { c.beginPath(); c.arc(12,12,7,0,Math.PI*2); c.stroke(); c.beginPath(); c.arc(12,12,2.5,0,Math.PI*2); c.stroke(); for(let a=0;a<6;a++){ const t=a*Math.PI/3; line([12+7*Math.cos(t),12+7*Math.sin(t),12+10*Math.cos(t),12+10*Math.sin(t)]) } }
         else if (name === "tray") { line([3,8,7,8,9,13,15,13,17,8,21,8,21,20,3,20,3,8]); line([7,4,17,4]) }
         else { c.beginPath(); c.arc(12,12,8,0,Math.PI*2); c.stroke(); line([12,7,12,13]); line([12,17,12,17.1]) }
     }

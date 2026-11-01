@@ -10,13 +10,19 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const assets = join(root, "assets/icons"), extension = join(root, "extension/icons");
 await mkdir(extension, { recursive: true });
 const source = await readFile(join(assets, "download-helper.svg"));
+// Chrome owns the toolbar spacing. Crop the desktop artwork's 60px transparent
+// inset (including its 4px outline) so the squircle spans the entire PNG canvas.
+const chromeSource = Buffer.from(source.toString().replace('viewBox="0 0 1024 1024"', 'viewBox="60 60 904 904"'));
 const sizes = [16, 32, 48, 64, 128, 256, 512, 1024];
 const pngs = new Map();
 for (const size of sizes) {
   const png = await sharp(source, { density: 192 }).resize(size, size).png().toBuffer();
   pngs.set(size, png);
   await writeFile(join(assets, `download-helper-${size}.png`), png);
-  if ([16, 32, 48, 128].includes(size)) await writeFile(join(extension, `icon-${size}.png`), png);
+  if ([16, 32, 48, 128].includes(size)) {
+    const chromePng = await sharp(chromeSource, { density: 192 }).resize(size, size).png().toBuffer();
+    await writeFile(join(extension, `icon-${size}.png`), chromePng);
+  }
 }
 // Windows supports PNG-compressed ICO entries, including the 256px image.
 const icoSizes = sizes.filter(size => size <= 256);
