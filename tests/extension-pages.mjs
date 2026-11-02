@@ -29,7 +29,7 @@ try {
         postMessage(message) {
           queueMicrotask(() => receive({ v: 1, id: message.id, ok: appOnline,
             ...(appOnline ? { setupComplete: true, accepting: true, appearance: appAppearance }
-              : { error: { code: "app_not_running", message: "Open Download Helper." } }),
+              : { error: { code: "app_not_running", message: "Open QDownloadManager." } }),
             ...(message.type === "filesStatus" ? { files: message.names.map(name => ({ name, exists: false, busy: false, policy: "skip" })) } : {}) }));
         }, disconnect() {}
       };
@@ -41,7 +41,7 @@ try {
   await page.goto(`chrome-extension://${id}/options.html`);
   await page.waitForFunction(() => document.querySelector("header img.mark")?.naturalWidth === 128);
   await page.waitForFunction(() => document.documentElement.dataset.palette === "teal");
-  await page.waitForFunction(() => document.querySelector("#sites").value.includes("joyreactor.cc"));
+  await page.waitForFunction(() => document.querySelector("#sites").value.includes("reddit.com"));
   const initial = await page.evaluate(() => chrome.storage.local.get(["sites", "imageHosts", "mode"]));
   const save = page.getByRole("button", { name: "Save settings" });
   await save.click();
@@ -63,14 +63,14 @@ try {
       return false;
     };
   });
-  await page.locator("#sites").fill("joyreactor.cc\nnew.example");
+  await page.locator("#sites").fill("reddit.com\nnew.example");
   await save.click();
   await page.waitForFunction(() => document.querySelector("#feedback").textContent.includes("not granted"));
   assert.ok((await page.evaluate(() => requestedOrigins)).includes("https://*.new.example/*"));
   assert.ok((await page.evaluate(() => requestedOrigins)).every(origin => !origin.startsWith("*:")));
   assert.deepEqual(await page.evaluate(() => chrome.storage.local.get("sites").then(s => s.sites)), initial.sites);
   await page.reload();
-  await page.waitForFunction(() => document.querySelector("#sites").value.includes("joyreactor.cc"));
+  await page.waitForFunction(() => document.querySelector("#sites").value.includes("reddit.com"));
   // Mode-only changes and clearing sites do not need any new host grant.
   await page.locator("#mode").selectOption("url");
   await save.click();
@@ -140,18 +140,18 @@ try {
   // options page left open. Only the native app boundary remains controlled.
   const website = await context.newPage();
   website.on("pageerror", error => errors.push(error.message));
-  await website.route("https://joyreactor.cc/**", route => route.fulfill({ contentType: "text/html",
-    body: '<!doctype html><body style="padding:80px"><img id="art" width="500" height="320" src="https://joyreactor.cc/test.svg"></body>' }));
+  await website.route("https://reddit.com/**", route => route.fulfill({ contentType: "text/html",
+    body: '<!doctype html><body style="padding:80px"><img id="art" width="500" height="320" src="https://reddit.com/test.svg"></body>' }));
   await website.route("**/test.svg", route => route.fulfill({ contentType: "image/svg+xml",
     body: '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="320"><rect width="500" height="320" fill="#8198a0"/></svg>' }));
-  await website.goto("https://joyreactor.cc/post/theme-test");
+  await website.goto("https://reddit.com/post/theme-test");
   await page.evaluate(async () => {
-    const [tab] = await chrome.tabs.query({ url: "https://joyreactor.cc/post/theme-test" });
+    const [tab] = await chrome.tabs.query({ url: "https://reddit.com/post/theme-test" });
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => {
       const attach = Element.prototype.attachShadow;
       Element.prototype.attachShadow = function(options) { return attach.call(this, { ...options, mode: "open" }); };
     } });
-    await chrome.storage.local.set({ sites: ["joyreactor.cc"], imageHosts: [], mode: "browser" });
+    await chrome.storage.local.set({ sites: ["reddit.com"], imageHosts: [], mode: "browser" });
     await chrome.runtime.sendMessage({ type: "syncSites" });
   });
   await page.close(); await popup.close();

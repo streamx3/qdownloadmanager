@@ -10,7 +10,7 @@ ApplicationWindow {
     minimumWidth: 380
     minimumHeight: 580
     visible: true
-    title: "Download Helper"
+    title: "QDownloadManager"
     color: Theme.background
     font.family: Theme.fontFamily
     property bool settingsOpen: false
@@ -217,7 +217,7 @@ ApplicationWindow {
                         }
                     }
                     ActionButton { text: "Start downloading"; primary: true; Layout.fillWidth: true; implicitHeight: 38; onClicked: backend.finishSetup() }
-                    BodyText { text: "JoyReactor and Reddit are enabled by default. You can manage websites in the extension."; font.pixelSize: 11; color: Theme.dim }
+                    BodyText { text: "Reddit is enabled by default. You can manage websites in the extension."; font.pixelSize: 11; color: Theme.dim }
                 }
             }
         }
@@ -409,7 +409,7 @@ ApplicationWindow {
                                 }
                                 BodyText {
                                     visible: backend.customTitleBar !== window.customChrome
-                                    text: "Restart Download Helper to apply the title bar change."
+                                    text: "Restart QDownloadManager to apply the title bar change."
                                     font.pixelSize: 11
                                     color: Theme.accentText
                                 }
@@ -460,7 +460,11 @@ ApplicationWindow {
                                 Rectangle { Layout.fillWidth: true; height: 1; color: Theme.inset }
                                 RowLayout {
                                     BodyText { text: "Downloads at once"; color: Theme.text; font.pixelSize: 13 }
-                                    Repeater { model: 3; ActionButton { required property int index; text: String(index + 1); implicitWidth: 32; primary: backend.concurrency === index + 1; onClicked: backend.concurrency = index + 1 } }
+                                    DownloadSpinBox {
+                                        objectName: "downloadConcurrency"
+                                        value: backend.concurrency
+                                        onValueModified: backend.concurrency = value
+                                    }
                                 }
                             }
                         }
@@ -485,7 +489,7 @@ ApplicationWindow {
                         BodyText { text: "Website permissions and the transfer method are managed in the Chrome extension."; color: Theme.dim; font.pixelSize: 11 }
                         RowLayout {
                             BodyText { text: "Version " + backend.version; color: Theme.dim; font.pixelSize: 11 }
-                            ActionButton { text: "Quit Download Helper"; ghost: true; onClicked: Qt.quit() }
+                            ActionButton { text: "Quit QDownloadManager"; ghost: true; onClicked: Qt.quit() }
                         }
                     }
                 }

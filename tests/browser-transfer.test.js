@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 
 test("the service-worker handler calls fetch with its global receiver and streams the body through Native Messaging", async () => {
   const extensionId = "mffndkhpgldamhbcnnaofcklhemocinb";
-  const url = "https://img0.joyreactor.cc/pics/post/full/test.gif";
-  const source = "https://joyreactor.cc/post/123";
+  const url = "https://i.redd.it/test.gif";
+  const source = "https://reddit.com/post/123";
   const body = new Uint8Array(250000).map((_, index) => index % 256);
-  let expectedImageUrl = url, expectedReferrer = "https://joyreactor.cc/";
+  let expectedImageUrl = url, expectedReferrer = "https://reddit.com/";
   const activeRules = new Map();
   const sent = [];
   let handler;

@@ -7,9 +7,9 @@
 </head>
 <body>
 <x-dc>
-<!-- @template name="Download Helper" description="Compact native utility window: OS permission onboarding, connection status with connect/disconnect, current download, recent files and settings" -->
+<!-- @template name="QDownloadManager" description="Compact native utility window: OS permission onboarding, connection status with connect/disconnect, current download, recent files and settings" -->
 <helmet>
-<title>Download Helper</title>
+<title>QDownloadManager</title>
 <script src="./ds-base.js"></script>
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 <style>body{margin:0}.ph{font-size:16px;line-height:1;display:block}</style>
@@ -21,13 +21,13 @@
 <span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-700)"></span>
 <span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-700)"></span>
 <span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-800)"></span>
-<span style="position:absolute;left:0;right:0;text-align:center;font-size:12px;color:var(--color-neutral-500);pointer-events:none">Download Helper</span>
+<span style="position:absolute;left:0;right:0;text-align:center;font-size:12px;color:var(--color-neutral-500);pointer-events:none">QDownloadManager</span>
 </div>
 </sc-if>
 <sc-if value="{{ isWin }}" hint-placeholder-val="{{ false }}">
 <div style="height:34px;flex:none;display:flex;align-items:center;padding-left:12px;gap:8px">
 <i class="ph ph-arrow-line-down" style="font-size:14px;color:var(--color-accent)"></i>
-<span style="font-size:12px;color:var(--color-neutral-400);margin-right:auto">Download Helper</span>
+<span style="font-size:12px;color:var(--color-neutral-400);margin-right:auto">QDownloadManager</span>
 <span style="width:44px;height:34px;display:grid;place-items:center;color:var(--color-neutral-400)" style-hover="background:var(--color-neutral-900)"><i class="ph ph-minus" style="font-size:13px"></i></span>
 <span style="width:44px;height:34px;display:grid;place-items:center;color:var(--color-neutral-700)"><i class="ph ph-square" style="font-size:12px"></i></span>
 <span style="width:44px;height:34px;display:grid;place-items:center;color:var(--color-neutral-400)" style-hover="background:var(--color-neutral-800)"><i class="ph ph-x" style="font-size:13px"></i></span>
@@ -39,7 +39,7 @@
 <div style="width:44px;height:44px;border-radius:10px;display:grid;place-items:center;background:var(--color-accent-900);box-shadow:inset 0 0 0 1px var(--color-accent-800);color:var(--color-accent-300)"><i class="ph ph-arrow-line-down" style="font-size:22px"></i></div>
 <div style="display:flex;flex-direction:column;gap:6px">
 <h4 style="margin:0;font-size:20px">Set up permissions</h4>
-<p style="margin:0;font-size:13px;line-height:1.5;color:var(--color-neutral-400);text-wrap:pretty">Download Helper saves files straight to this computer, so {{ osName }} has to let it. You can change these later in Settings.</p>
+<p style="margin:0;font-size:13px;line-height:1.5;color:var(--color-neutral-400);text-wrap:pretty">QDownloadManager saves files straight to this computer, so {{ osName }} has to let it. You can change these later in Settings.</p>
 </div>
 <div style="display:flex;flex-direction:column;gap:6px">
 <sc-for list="{{ permList }}" as="p" hint-placeholder-count="3">
@@ -67,7 +67,7 @@
 <div style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:20px;padding:8px 16px 16px">
 <div style="display:flex;align-items:center;gap:10px">
 <div style="width:28px;height:28px;border-radius:7px;display:grid;place-items:center;background:var(--color-accent-900);box-shadow:inset 0 0 0 1px var(--color-accent-800);color:var(--color-accent-300)"><i class="ph ph-arrow-line-down" style="font-size:15px"></i></div>
-<span style="font-size:15px;font-weight:500;margin-right:auto">Download Helper</span>
+<span style="font-size:15px;font-weight:500;margin-right:auto">QDownloadManager</span>
 <button class="btn btn-secondary btn-icon" style="width:30px;height:30px;color:var(--color-neutral-300)" aria-label="Settings" title="Settings" onClick="{{ openSettings }}"><i class="ph ph-gear-six"></i></button>
 </div>
 <div style="display:flex;flex-direction:column;gap:14px;padding:14px;border-radius:var(--radius-md);background:var(--color-surface)">
@@ -194,7 +194,7 @@
 </div>
 <div style="display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:4px;font-size:11.5px;color:var(--color-neutral-500)">
 <span style="margin-right:auto">Version 1.0.0</span>
-<button class="btn btn-ghost" style="font-size:12px;padding:3px 6px" onClick="{{ quit }}">Quit Download Helper</button>
+<button class="btn btn-ghost" style="font-size:12px;padding:3px 6px" onClick="{{ quit }}">Quit QDownloadManager</button>
 </div>
 </div>
 </div>
@@ -224,11 +224,11 @@ function iconFor(n) { const e = n.split('.').pop().toLowerCase(); return { zip: 
 const HOST = 'relay.example.net';
 const PERMS = [
   { key: 'files', icon: 'folder-simple', title: 'Files & folders', desc: 'Save downloads to the folder you choose.', required: true,
-    pTitle: '“Download Helper” would like to access files in your Downloads folder.', pBody: 'Downloads are saved here. You can choose a different folder later.' },
+    pTitle: '“QDownloadManager” would like to access files in your Downloads folder.', pBody: 'Downloads are saved here. You can choose a different folder later.' },
   { key: 'notify', icon: 'bell-simple', title: 'Notifications', desc: 'Tell you when a download finishes or fails.',
-    pTitle: '“Download Helper” would like to send you notifications.', pBody: 'Notifications may include alerts and sounds.' },
+    pTitle: '“QDownloadManager” would like to send you notifications.', pBody: 'Notifications may include alerts and sounds.' },
   { key: 'background', icon: 'moon', title: 'Run in background', desc: 'Keep downloading after the window is closed.',
-    pTitle: '“Download Helper” wants to keep running in the background.', pBody: 'It stays in the TRAY and keeps downloads going when the window is closed.' },
+    pTitle: '“QDownloadManager” wants to keep running in the background.', pBody: 'It stays in the TRAY and keeps downloads going when the window is closed.' },
 ];
 
 class Component extends DCLogic {

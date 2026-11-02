@@ -1,4 +1,4 @@
-# Download Helper / qdownloadmanager
+# QDownloadManager
 
 A Qt 6 desktop app, a small Chrome Native Messaging bridge, and a Manifest V3
 extension for saving images in one click. The QML interface follows the Nocturne
@@ -15,14 +15,14 @@ remote relay server, account, or listening TCP port in the product.
 
 ## What works
 
-- Image buttons on `joyreactor.cc`, `joyreactor.com`, `reddit.com` (including old
+- Image buttons on `reddit.com` (including old
   Reddit), and their subdomains. Linked
   originals are preferred to thumbnails. Lazy-loaded and dynamically inserted
   images are discovered; small avatars and icons are skipped.
 - Chrome fetches the original image with the source page's referrer and streams
   bounded chunks to the app, preserving file formats and animated GIFs. An optional URL mode lets the desktop
   app fetch public files itself. The app also has an **Add link** button.
-- Shared queue with 1–3 simultaneous downloads, pause/resume, cancel, live progress,
+- Shared queue with 1–20 simultaneous downloads, pause/resume, cancel, live progress,
   persistent recent history, folder selection, and reveal in Finder/Explorer.
 - Filename checks with **Skip** (default) or **Overwrite** settings. Overwrite
   replaces the old file only after a successful transfer; skip avoids fetching it.
@@ -71,20 +71,20 @@ inside `qdownloadmanager.app/Contents/MacOS`.
 
 ## Connect Chrome
 
-1. Launch Download Helper and choose the save folder.
+1. Launch QDownloadManager and choose the save folder.
 2. Click **Register Chrome bridge**. This registers the current executable path
    for your user, without administrator access. Register again if you move it.
 3. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**,
    and select this repository's `extension` folder. The desktop app's **Show
    extension folder** button opens it for you.
 4. Finish the app's setup. Open the extension popup and click **Connect**.
-5. Visit JoyReactor or Reddit, hover over a large image, and click its ↓ button. Keep the desktop app
+5. Visit Reddit, hover over a large image, and click its ↓ button. Keep the desktop app
    running until the image is saved. Reload previously open pages if necessary.
 
 In the extension's settings, add website domains and additional image-CDN domains.
 Chrome requests host access for additions. Removing a website removes its buttons
 and blocks new requests; Chrome's previously granted permission remains until you
-revoke it in the browser. The default network grants cover JoyReactor, `reactor.cc`, Reddit, and its
+revoke it in the browser. The default network grants cover Reddit, and its
 `i.redd.it`, `preview.redd.it`, and `external-preview.redd.it` image hosts.
 
 ### Appearance and window controls
@@ -129,20 +129,29 @@ toolbar, extension manager, and page headers. Source and regeneration details
 are in [assets/icons](assets/icons/README.md). The header's +, moon, and settings
 glyphs are centered within their buttons, and the moon uses a corrected crescent.
 
-App 0.3.4 uses the supplied Icons8 settings gear with the current theme's glyph
-color. Extension 0.2.7 removes the desktop artwork's transparent outer padding
+App 0.4.0 uses a three-line settings menu glyph and an editable, themed
+spinbox for 1–20 simultaneous downloads. Invalid input restores the last valid
+value; changes commit on Enter or when leaving the field.
+Extension 0.2.7 removes the desktop artwork's transparent outer padding
 from Chrome's icons, so the squircle fills each icon canvas edge to edge.
 
 ### Updating an already loaded extension
 
-After editing/updating the extension folder, click **Reload** on Download Helper
+After editing/updating the extension folder, click **Reload** on QDownloadManager
 at `chrome://extensions`, then refresh the website page. The desktop app does
 not need rebuilding for extension-only changes.
 
-Extension 0.2.6 themes the image-overlay controls using the Qt app's rendered
-palette and scheme. Reload the extension and refresh open website tabs once.
-The existing app 0.3.2+ already supplies the necessary colors; no app update is
-needed for this extension release.
+App 0.4.0 and extension 0.3.0 use the name **QDownloadManager** throughout.
+Fully quit and reopen the desktop app, reload the extension, and refresh open
+website tabs. The extension ID and native-host identity are unchanged, so no
+reinstallation or new permissions are needed. Existing installations keep using
+their original internal data directory (`DownloadHelper`) to preserve settings,
+history, and the bridge connection; new installations use `QDownloadManager`.
+Previously selected download folders are kept as-is.
+
+Extension 0.3.0 keeps Reddit as its only built-in website. On the first upgrade,
+saved website and image-host lists reset to Reddit defaults (an explicitly empty
+website list stays disabled). You can then add custom sites again in settings.
 
 Extension 0.2.4 with app 0.3.2 uses the actual color values exported by the Qt UI.
 This prevents a scheme mismatch when Qt and Chrome resolve System differently,
@@ -184,7 +193,7 @@ responses and redirects. No Reddit API key, account export, or Qt change is need
 
 Version 0.2.0 fixes the quit crash with connected browsers, adds filename-policy
 settings, and checks existing files through two-way Native Messaging. Rebuild and
-restart the desktop app, reload the extension, and refresh your JoyReactor tabs.
+restart the desktop app, reload the extension, and refresh your website tabs.
 The checkmark means a matching filename exists in the selected save folder; it
 does not claim byte equality. Subfolder scans and hashing are future catalog work.
 
@@ -192,9 +201,8 @@ Version 0.1.2 fixes the `WorkerGlobalScope: Illegal invocation` error introduced
 in 0.1.1 by binding the native `fetch` function to its worker global. The transfer
 regression test now reproduces Chrome's function-receiver check.
 
-Version 0.1.1 fixes missing source-page referrers in browser transfers. A public
-JoyReactor image returned different bytes with and without its page referrer, even
-without cookies. Each image fetch now gets a temporary, exact-URL header rule
+Version 0.1.1 fixes missing source-page referrers in browser transfers.
+Each image fetch gets a temporary, exact-URL header rule
 restricted to this extension's own background GET request. The rule is removed
 when response headers arrive. The fetch bypasses the cache so an older response
 obtained without the referrer cannot be reused. This uses the

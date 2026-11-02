@@ -112,9 +112,8 @@ to HTTP downgrades carry no referrer.
 The rule is removed as soon as response headers arrive, including on request
 failure. Concurrent requests for the same URL serialize their header phase to
 avoid applying another tab's referrer. Stale rules from a terminated worker are
-cleared on initialization. Image fetches use `cache: no-store`: the observed
-JoyReactor response lacked `Vary: Referer`, so a response fetched in the old
-context could otherwise be reused. Cookies are still handled by Chrome using
+cleared on initialization. Image fetches use `cache: no-store` so an image
+variant fetched in another request context cannot be reused. Cookies are still handled by Chrome using
 `credentials: include`; this does not guarantee identical partitioned/session
 state to a page's embedded image. Native URL-mode requests do not receive the
 page referrer or browser cookies.

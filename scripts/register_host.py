@@ -21,7 +21,10 @@ def main():
     elif sys.platform == "darwin":
         directory = Path.home() / "Library/Application Support/Google/Chrome/NativeMessagingHosts"
     elif sys.platform == "win32":
-        directory = Path(os.environ["LOCALAPPDATA"]) / "QDownloadManager/DownloadHelper"
+        directory = Path(os.environ["LOCALAPPDATA"]) / "QDownloadManager/QDownloadManager"
+        legacy = directory.parent / "DownloadHelper"
+        if (legacy / "settings.ini").exists():
+            directory = legacy
     else:
         directory = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "google-chrome/NativeMessagingHosts"
     manifest = directory / (IDENTITY["host"] + ".json")
@@ -40,7 +43,7 @@ def main():
         parser.error("--host must point to the built native bridge executable")
     directory.mkdir(parents=True, exist_ok=True)
     document = {
-        "name": IDENTITY["host"], "description": "Download Helper local bridge",
+        "name": IDENTITY["host"], "description": "QDownloadManager local bridge",
         "path": str(args.host.resolve()), "type": "stdio",
         "allowed_origins": [f"chrome-extension://{IDENTITY['extensionId']}/"],
     }

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <title>Download Helper</title>
+  <title>QDownloadManager</title>
   <path d="M512 64 C909 64 960 115 960 512 C960 909 909 960 512 960 C115 960 64 909 64 512 C64 115 115 64 512 64Z"
         fill="#0c1619" stroke="#24383d" stroke-width="8"/>
   <path d="M512 290V590 M392 470L512 590L632 470 M322 718H702"

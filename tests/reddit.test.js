@@ -30,7 +30,7 @@ test("Reddit feed, gallery, and media-viewer links resolve to the same original"
     assert.equal(rules.originalImage(image(src, href), post), original);
   }
   assert.equal(rules.originalImage(image("https://preview.redd.it/another-v0-abcdefghijkl.gif?format=mp4"), post), "https://i.redd.it/abcdefghijkl.gif");
-  assert.equal(rules.originalImage(image(preview), "https://joyreactor.cc/"), preview, "site-specific rewriting must stay scoped to Reddit");
+  assert.equal(rules.originalImage(image(preview), "https://example.org/"), preview, "site-specific rewriting must stay scoped to Reddit");
 });
 
 test("external previews keep their signature and unrelated viewer parameters are ignored", () => {
@@ -51,19 +51,21 @@ test("legacy thumbnails use the post's explicit image URL, never a guessed galle
   assert.equal(rules.originalImage(image(thumbnail, null, "https://v.redd.it/example"), post), null);
 });
 
-test("settings migration adds Reddit once while retaining custom sites, hosts, and mode", async () => {
-  let saved = { sites: ["joyreactor.cc", "example.com"], imageHosts: ["images.example.com"], mode: "url" };
+test("settings migration resets old site lists to Reddit once and preserves subsequent edits", async () => {
+  let saved = { sites: ["example.org", "example.com"], imageHosts: ["images.example.com"], mode: "url", siteDefaultsVersion: 1 };
   let writes = 0;
   const storage = { async get() { return structuredClone(saved); }, async set(values) { saved = { ...saved, ...values }; writes++; } };
   await migrateSettings(storage);
-  assert.deepEqual(saved.sites, ["joyreactor.cc", "example.com", "reddit.com"]);
+  assert.deepEqual(saved.sites, ["reddit.com"]);
   assert.equal(saved.mode, "url");
-  assert.ok(saved.imageHosts.includes("images.example.com"));
-  assert.ok(saved.imageHosts.includes("i.redd.it"));
+  assert.deepEqual(saved.imageHosts, rules.DEFAULTS.imageHosts);
   saved.sites = saved.sites.filter(site => site !== "reddit.com");
   await migrateSettings(storage);
   assert.equal(writes, 1);
   assert.ok(!saved.sites.includes("reddit.com"), "respect a subsequent user opt-out");
+  saved = { sites: [], siteDefaultsVersion: 1 };
+  await migrateSettings(storage);
+  assert.deepEqual(saved.sites, [], "keep a previously disabled site list disabled");
   saved = {};
   await migrateSettings(storage);
   assert.deepEqual(saved.sites, rules.DEFAULTS.sites);

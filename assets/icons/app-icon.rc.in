@@ -1,1 +1,1 @@
-IDI_ICON1 ICON "@CMAKE_CURRENT_SOURCE_DIR@/assets/icons/download-helper.ico"
+IDI_ICON1 ICON "@CMAKE_CURRENT_SOURCE_DIR@/assets/icons/qdownloadmanager.ico"

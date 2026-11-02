@@ -52,14 +52,14 @@ int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
     QCoreApplication::setOrganizationName("QDownloadManager");
-    QCoreApplication::setApplicationName("DownloadHelper");
+    QCoreApplication::setApplicationName("QDownloadManager");
 #ifdef Q_OS_WIN
     _setmode(_fileno(stdin), _O_BINARY);
     _setmode(_fileno(stdout), _O_BINARY);
 #endif
     const auto expectedOrigin = QString("chrome-extension://%1/").arg(Identity::ExtensionId);
     if (app.arguments().size() < 2 || app.arguments().at(1) != expectedOrigin) {
-        std::fprintf(stderr, "This bridge must be launched by the Download Helper Chrome extension.\n");
+        std::fprintf(stderr, "This bridge must be launched by the QDownloadManager Chrome extension.\n");
         return 1;
     }
     // Explicit override lets integration tests isolate both processes without touching user data.
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
             socket.abort();
             if (!endpoint.isEmpty()) socket.connectToServer(endpoint);
             if (endpoint.isEmpty() || !socket.waitForConnected(750)) {
-                if (!send(Protocol::failure(request, "app_not_running", "Open Download Helper on this computer, then try again."))) break;
+                if (!send(Protocol::failure(request, "app_not_running", "Open QDownloadManager on this computer, then try again."))) break;
                 continue;
             }
             // Every new local connection starts with a handshake, including reconnects.

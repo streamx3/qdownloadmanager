@@ -20,12 +20,12 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     app.setOrganizationName("QDownloadManager");
-    app.setApplicationName("DownloadHelper");
-    app.setApplicationDisplayName("Download Helper");
+    app.setApplicationName("QDownloadManager");
+    app.setApplicationDisplayName("QDownloadManager");
     app.setApplicationVersion(Identity::Version);
     QQuickStyle::setStyle("Basic");
     QCommandLineParser parser;
-    parser.setApplicationDescription("Download Helper — images from Chrome, saved locally.");
+    parser.setApplicationDescription("QDownloadManager — images from Chrome, saved locally.");
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addOptions({{"settings", "Open the Settings screen."},
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
         : qEnvironmentVariable("QDM_DATA_DIR", LocalEndpoint::dataDirectory());
     if (!LocalEndpoint::prepareDirectory(directory)) { qCritical("Cannot create private app data directory."); return 1; }
     QLockFile instance(QDir(directory).filePath("app.lock"));
-    if (!instance.tryLock(0)) { qCritical("Download Helper is already running for this data directory."); return 1; }
+    if (!instance.tryLock(0)) { qCritical("QDownloadManager is already running for this data directory."); return 1; }
     AppController controller(directory);
     LocalServer server(controller);
     QObject::connect(&app, &QCoreApplication::aboutToQuit, &controller, [&] {
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
     QIcon icon;
     for (const auto size : {16, 32, 48, 64, 128, 256, 512, 1024})
-        icon.addFile(QString(":/icons/download-helper-%1.png").arg(size), QSize(size, size));
+        icon.addFile(QString(":/icons/qdownloadmanager-%1.png").arg(size), QSize(size, size));
     app.setWindowIcon(icon);
 
     WindowChrome windowChrome;
@@ -58,17 +58,17 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("startupCustomTitleBar", controller.customTitleBar() && !parser.isSet("native-title-bar"));
     engine.rootContext()->setContextProperty("backend", &controller);
     engine.rootContext()->setContextProperty("trayAvailable", QSystemTrayIcon::isSystemTrayAvailable());
-    engine.loadFromModule("DownloadHelper", "Main");
+    engine.loadFromModule("QDownloadManager", "Main");
     if (engine.rootObjects().isEmpty()) return 1;
     auto window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
     if (!window) return 1;
     if (parser.isSet("settings")) window->setProperty("settingsOpen", true);
 
     QSystemTrayIcon tray(icon);
-    tray.setToolTip("Download Helper");
+    tray.setToolTip("QDownloadManager");
     QMenu trayMenu;
     auto show = [&] { window->show(); window->raise(); window->requestActivate(); };
-    trayMenu.addAction("Open Download Helper", &app, show);
+    trayMenu.addAction("Open QDownloadManager", &app, show);
     trayMenu.addAction("Open download folder", &controller, &AppController::openFolder);
     trayMenu.addSeparator();
     trayMenu.addAction("Quit", &app, &QApplication::quit);

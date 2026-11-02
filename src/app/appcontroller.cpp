@@ -71,18 +71,18 @@ QString AppController::saveFolder() const
 {
     auto downloads = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
     if (downloads.isEmpty()) downloads = QDir::homePath();
-    return m_settings.value("folder", QDir(downloads).filePath("Download Helper")).toString();
+    return m_settings.value("folder", QDir(downloads).filePath("QDownloadManager")).toString();
 }
 bool AppController::setupComplete() const { return m_settings.value("setupComplete", false).toBool(); }
 bool AppController::accepting() const { return m_settings.value("accepting", true).toBool(); }
-int AppController::concurrency() const { return qBound(1, m_settings.value("concurrency", 2).toInt(), 3); }
+int AppController::concurrency() const { return qBound(1, m_settings.value("concurrency", 2).toInt(), 20); }
 QString AppController::existingFilePolicy() const { return m_settings.value("existingFilePolicy").toString() == "overwrite" ? "overwrite" : "skip"; }
 bool AppController::keepInTray() const { return m_settings.value("keepInTray", false).toBool(); }
 bool AppController::notifications() const { return m_settings.value("notifications", false).toBool(); }
 QString AppController::extensionId() const { return Identity::ExtensionId; }
 QString AppController::version() const { return Identity::Version; }
 void AppController::setAccepting(bool value) { m_settings.setValue("accepting", value); m_downloads.setAccepting(value); emit settingsChanged(); }
-void AppController::setConcurrency(int value) { m_settings.setValue("concurrency", qBound(1, value, 3)); m_downloads.setConcurrency(concurrency()); emit settingsChanged(); }
+void AppController::setConcurrency(int value) { m_settings.setValue("concurrency", qBound(1, value, 20)); m_downloads.setConcurrency(concurrency()); emit settingsChanged(); }
 void AppController::setExistingFilePolicy(const QString &value) {
     if (value != "skip" && value != "overwrite") return;
     m_settings.setValue("existingFilePolicy", value);
@@ -156,7 +156,7 @@ bool AppController::bridgeInstalled() const
 void AppController::installBridge()
 {
     if (!QFileInfo::exists(bridgePath())) { showMessage("The native bridge is missing beside the app executable. Rebuild the app first."); return; }
-    const QJsonObject manifest{{"name", Identity::Host}, {"description", "Download Helper local bridge"},
+    const QJsonObject manifest{{"name", Identity::Host}, {"description", "QDownloadManager local bridge"},
         {"path", QDir::toNativeSeparators(bridgePath())}, {"type", "stdio"},
         {"allowed_origins", QJsonArray{"chrome-extension://" + extensionId() + "/"}}};
     QDir().mkpath(QFileInfo(manifestPath()).absolutePath());

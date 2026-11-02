@@ -11,9 +11,9 @@ try {
   const page = await browser.newPage({ viewport: { width: 900, height: 700 } });
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
-  await page.route("https://joyreactor.cc/**", route => route.fulfill({ contentType: "text/html", body: '<!doctype html><body style="padding:60px"><img id="art" width="300" height="200" src="https://joyreactor.cc/test.svg"><img width="40" height="40" src="https://joyreactor.cc/test.svg"></body>' }));
+  await page.route("https://reddit.com/**", route => route.fulfill({ contentType: "text/html", body: '<!doctype html><body style="padding:60px"><img id="art" width="300" height="200" src="https://reddit.com/test.svg"><img width="40" height="40" src="https://reddit.com/test.svg"></body>' }));
   await page.route("**/test.svg*", route => route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="#645b88"/></svg>' }));
-  await page.goto("https://joyreactor.cc/post/test");
+  await page.goto("https://reddit.com/post/test");
   await page.evaluate(initialAppearance => {
     // Open only this test's shadow root so assertions can inspect actual buttons.
     const attach = Element.prototype.attachShadow;
@@ -83,12 +83,12 @@ try {
   await page.waitForTimeout(180);
   assert.equal(await opacity(), "1", "keyboard focus must reveal the button");
   // Lazy replacement keeps one button and queries the new original URL.
-  await page.evaluate(() => document.querySelector('#art').src = "https://joyreactor.cc/test.svg?new");
-  await page.waitForFunction(() => calls.some(call => call.urls?.includes("https://joyreactor.cc/test.svg?new")));
+  await page.evaluate(() => document.querySelector('#art').src = "https://reddit.com/test.svg?new");
+  await page.waitForFunction(() => calls.some(call => call.urls?.includes("https://reddit.com/test.svg?new")));
   // A second large image must stay transparent while the first is hovered.
   await page.evaluate(() => {
     const second = document.createElement('img'); second.id = 'second'; second.width = 300; second.height = 200;
-    second.src = 'https://joyreactor.cc/test.svg?second'; second.style.display = 'block'; document.body.append(second);
+    second.src = 'https://reddit.com/test.svg?second'; second.style.display = 'block'; document.body.append(second);
   });
   await page.waitForFunction(() => document.querySelector('#qdm-image-buttons').shadowRoot.querySelectorAll('button:not([hidden])').length === 2);
   await page.locator('#art').hover();

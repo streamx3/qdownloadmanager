@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { ImageFetcher, imageReferrer, referrerRule } from "../extension/image-fetch.js";
 
 const extensionId = "mffndkhpgldamhbcnnaofcklhemocinb";
-const imageUrl = "https://img0.joyreactor.com/pics/post/full/example.jpg?size=2&name=a+b";
-const pageUrl = "https://joyreactor.com/post/123?private=query#comments";
+const imageUrl = "https://images.example.com/example.jpg?size=2&name=a+b";
+const pageUrl = "https://example.com/post/123?private=query#comments";
 
 function netRequest(initial = []) {
   const rules = new Map(initial.map(rule => [rule.id, rule]));
@@ -20,16 +20,16 @@ function netRequest(initial = []) {
 }
 
 test("source-page referrers omit cross-origin paths, secrets, and fragments", () => {
-  assert.equal(imageReferrer(imageUrl, pageUrl), "https://joyreactor.com/");
-  assert.equal(imageReferrer("https://joyreactor.com/image.jpg", pageUrl), "https://joyreactor.com/post/123?private=query");
-  assert.equal(imageReferrer("http://img0.joyreactor.com/image.jpg", pageUrl), "");
+  assert.equal(imageReferrer(imageUrl, pageUrl), "https://example.com/");
+  assert.equal(imageReferrer("https://example.com/image.jpg", pageUrl), "https://example.com/post/123?private=query");
+  assert.equal(imageReferrer("http://images.example.com/image.jpg", pageUrl), "");
   assert.throws(() => imageReferrer("file:///tmp/image", pageUrl));
-  assert.throws(() => imageReferrer(imageUrl, "https://user:secret@joyreactor.com/"));
+  assert.throws(() => imageReferrer(imageUrl, "https://user:secret@example.com/"));
 });
 
 test("a temporary header rule matches only the exact extension GET image fetch", () => {
   const rule = referrerRule(1000000, imageUrl + "#ignored", pageUrl, extensionId);
-  assert.equal(rule.action.requestHeaders[0].value, "https://joyreactor.com/");
+  assert.equal(rule.action.requestHeaders[0].value, "https://example.com/");
   assert.deepEqual(rule.condition.initiatorDomains, [extensionId]);
   assert.deepEqual(rule.condition.tabIds, [-1]);
   assert.deepEqual(rule.condition.resourceTypes, ["xmlhttprequest"]);
@@ -48,7 +48,7 @@ test("the image is fetched with its referrer, credentials, and a fresh response,
     assert.equal(url, imageUrl);
     assert.equal(api.rules.has(1000008), false, "stale rules must be removed");
     const rule = [...api.rules.values()].find(item => item.id >= 1000000);
-    assert.equal(rule.action.requestHeaders[0].value, "https://joyreactor.com/");
+    assert.equal(rule.action.requestHeaders[0].value, "https://example.com/");
     assert.equal(options.credentials, "include");
     assert.equal(options.cache, "no-store", "must not reuse the old watermarked cache variant");
     assert.equal(options.redirect, "error");
@@ -85,13 +85,13 @@ test("simultaneous downloads of one URL cannot exchange the two tabs' referrers"
     if (seen.length === 1) { notifyFirst(); await firstHeaders; }
     return new Response("image");
   });
-  const a = fetcher.fetch(imageUrl, "https://joyreactor.com/post/123");
-  const b = fetcher.fetch(imageUrl, "https://joyreactor.cc/post/456");
+  const a = fetcher.fetch(imageUrl, "https://example.com/post/123");
+  const b = fetcher.fetch(imageUrl, "https://other.example/post/456");
   await firstStarted;
-  assert.deepEqual(seen, ["https://joyreactor.com/"]);
+  assert.deepEqual(seen, ["https://example.com/"]);
   releaseFirst();
   await Promise.all([a, b]);
-  assert.deepEqual(seen, ["https://joyreactor.com/", "https://joyreactor.cc/"]);
+  assert.deepEqual(seen, ["https://example.com/", "https://other.example/"]);
   assert.equal(api.rules.size, 0);
   assert.equal(fetcher.locks.size, 0);
 });

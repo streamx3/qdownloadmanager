@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Dr Stein's integrated header conventions, sized for Download Helper.
+// Dr Stein's integrated header conventions, sized for QDownloadManager.
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
@@ -42,7 +42,7 @@ Item {
             onClicked: bar.goBack()
         }
         Text {
-            text: bar.settingsOpen ? "Settings" : "Download Helper"
+            text: bar.settingsOpen ? "Settings" : "QDownloadManager"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             elide: Text.ElideRight

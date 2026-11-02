@@ -118,8 +118,8 @@ def main():
             assert appearance["resolvedScheme"] == "dark" and appearance["colors"]["bg"] == "#161826", appearance
             assert len(appearance["colors"]) == 12, appearance
             print("PASS: bridge connects when the app starts")
-            first = require_ok(bridge.request("begin", url="https://joyreactor.cc/image.svg", name="../../image.svg", total=len(data)))["jobId"]
-            second = require_ok(bridge.request("begin", url="https://joyreactor.com/image.svg", name="second.svg", total=len(data)))["jobId"]
+            first = require_ok(bridge.request("begin", url="https://reddit.com/image.svg", name="../../image.svg", total=len(data)))["jobId"]
+            second = require_ok(bridge.request("begin", url="https://www.reddit.com/image.svg", name="second.svg", total=len(data)))["jobId"]
             assert bridge.request("jobStatus", jobId=second)["state"] == "queued"
             assert not bridge.request("chunk", jobId=second, offset=0, data="YWJj")["accepted"]
             for job in [first, second]:
@@ -130,12 +130,12 @@ def main():
             expected = hashlib.sha256(data).digest()
             for name in ["image.svg", "second.svg"]:
                 assert hashlib.sha256((downloads / name).read_bytes()).digest() == expected
-            duplicate = require_ok(bridge.request("begin", url="https://joyreactor.cc/image.svg", name="image.svg"))
+            duplicate = require_ok(bridge.request("begin", url="https://reddit.com/image.svg", name="image.svg"))
             assert duplicate["state"] == "skipped" and "jobId" not in duplicate
             status = require_ok(bridge.request("filesStatus", names=["image.svg", "absent.png"]))["files"]
             assert status[0]["exists"] and not status[1]["exists"]
             print("PASS: exact chunked bytes, queue advancement, safe paths, and duplicate checks")
-            interrupted = require_ok(bridge.request("begin", url="https://joyreactor.cc/interrupted.png", name="interrupted.png"))["jobId"]
+            interrupted = require_ok(bridge.request("begin", url="https://reddit.com/interrupted.png", name="interrupted.png"))["jobId"]
             require_ok(bridge.request("chunk", jobId=interrupted, offset=0, data="YWJj"))
             bridge.close()
             deadline = time.monotonic() + 5
@@ -163,7 +163,7 @@ def main():
             assert not (downloads / "missing.png").exists()
             print("PASS: native HTTP downloading and HTTP error handling")
             # Keep the socket and an unfinished file alive through QApplication::quit.
-            shutdown_job = require_ok(bridge.request("begin", url="https://joyreactor.cc/shutdown.png"))["jobId"]
+            shutdown_job = require_ok(bridge.request("begin", url="https://reddit.com/shutdown.png"))["jobId"]
             require_ok(bridge.request("chunk", jobId=shutdown_job, offset=0, data="YWJj"))
             app.wait(timeout=10)
             assert app.returncode == 0, f"Graceful quit crashed: {app.returncode}"

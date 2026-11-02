@@ -1,5 +1,5 @@
-// An extension-worker fetch does not inherit the tab's referrer. JoyReactor
-// serves different image bytes without it, even for a public image URL.
+// An extension-worker fetch does not inherit the tab's referrer. Preserve the
+// source-page context when requesting image bytes.
 const FIRST_RULE_ID = 1000000;
 const LAST_RULE_ID = 1999999;
 
@@ -66,7 +66,7 @@ export class ImageFetcher {
   }
 
   async fetch(imageUrl, pageUrl, options = {}) {
-    if (!this.netRequest) throw new Error("Reload the updated Download Helper extension to enable image referrers.");
+    if (!this.netRequest) throw new Error("Reload the updated QDownloadManager extension to enable image referrers.");
     await this.initialize();
     const url = new URL(imageUrl);
     url.hash = "";
@@ -94,8 +94,7 @@ export class ImageFetcher {
         headers.set("Accept", "image/*"); // Ask the CDN for bytes, not Reddit's HTML image viewer.
       return await this.fetchResource(key, {
         ...options, headers, method: "GET", credentials: "include", redirect: "error",
-        // JoyReactor's observed response did not include Vary: Referer. A cached
-        // image from an earlier context may therefore contain the wrong variant.
+        // Avoid reusing a cached image variant from another request context.
         cache: "no-store"
       });
     } finally {

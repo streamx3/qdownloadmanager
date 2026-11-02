@@ -14,17 +14,17 @@ test("stable Chrome ID matches the bridge identity", () => {
   assert.equal(id, identity.extensionId);
 });
 test("allowlist accepts only the configured domains and their subdomains", () => {
-  assert.equal(rules.allowed("https://img1.joyreactor.cc/pics/post/a.jpg", rules.DEFAULTS.sites), true);
-  for (const url of ["https://joyreactor.cc.evil.example/a", "https://notjoyreactor.cc/a", "file:///tmp/a", "javascript:alert(1)", "https://user:pass@joyreactor.cc/a", "http://127.0.0.1/a"])
+  assert.equal(rules.allowed("https://www.reddit.com/preview.jpg", rules.DEFAULTS.sites), true);
+  for (const url of ["https://reddit.com.evil.example/a", "https://notreddit.com/a", "file:///tmp/a", "javascript:alert(1)", "https://user:pass@reddit.com/a", "http://127.0.0.1/a"])
     assert.equal(rules.allowed(url, rules.DEFAULTS.sites), false, url);
-  assert.equal(rules.normalizeHost("https://JoyReactor.COM/feed"), "joyreactor.com");
+  assert.equal(rules.normalizeHost("https://REDDIT.COM/feed"), "reddit.com");
   assert.throws(() => rules.normalizeHost("*.example.com"));
 });
-test("JoyReactor original links beat displayed thumbnails without rewriting URLs", () => {
+test("linked originals beat displayed thumbnails without rewriting URLs", () => {
   const img = (src, href) => ({ currentSrc: src, getAttribute: () => src, closest: () => href ? { getAttribute: () => href } : null });
-  assert.equal(rules.originalImage(img("https://img0.joyreactor.com/pics/post/a.jpg", "https://img0.joyreactor.com/pics/post/full/a.gif"), "https://joyreactor.com/"), "https://img0.joyreactor.com/pics/post/full/a.gif");
-  assert.equal(rules.originalImage(img("/image.jpg", "/post/123"), "https://joyreactor.cc/"), "https://joyreactor.cc/image.jpg");
-  assert.equal(rules.originalImage(img("blob:https://joyreactor.cc/id"), "https://joyreactor.cc/"), null);
+  assert.equal(rules.originalImage(img("https://i.redd.it/preview.jpg", "https://i.redd.it/original.gif"), "https://reddit.com/"), "https://i.redd.it/original.gif");
+  assert.equal(rules.originalImage(img("/image.jpg", "/post/123"), "https://reddit.com/"), "https://reddit.com/image.jpg");
+  assert.equal(rules.originalImage(img("blob:https://reddit.com/id"), "https://reddit.com/"), null);
 });
 test("optional permission requests use separate manifest-covered HTTP and HTTPS origins", () => {
   assert.deepEqual(rules.permissionOrigins(["example.org", "localhost", "127.0.0.1", "example.org"]), [

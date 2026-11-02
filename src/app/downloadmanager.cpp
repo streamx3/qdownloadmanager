@@ -172,7 +172,7 @@ int DownloadManager::queuedCount() const
 
 void DownloadManager::setConcurrency(int value)
 {
-    m_concurrency = qBound(1, value, 3);
+    m_concurrency = qBound(1, value, 20);
     schedule();
 }
 
@@ -180,7 +180,7 @@ QJsonObject DownloadManager::handle(const QJsonObject &request, const QString &o
 {
     const auto type = request.value("type").toString();
     auto fail = [&](const QString &code, const QString &message) { return Protocol::failure(request, code, message); };
-    if (m_shuttingDown) return fail("app_closing", "Download Helper is closing.");
+    if (m_shuttingDown) return fail("app_closing", "QDownloadManager is closing.");
     if (type == "filesStatus") {
         const auto names = request.value("names").toArray();
         if (!request.value("names").isArray() || names.size() > 64) return fail("invalid_request", "Check at most 64 filenames at a time.");

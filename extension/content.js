@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "0.2.6";
+  const VERSION = "0.3.0";
   if (globalThis.__qdmVersion === VERSION && document.querySelector("#qdm-image-buttons")) { globalThis.__qdmRefresh?.(); return; }
   globalThis.__qdmDestroy?.();
   // Reloading an unpacked extension invalidates its old JS context, but leaves
@@ -72,7 +72,7 @@
     const state = entry.saving || entry.busy ? "busy" : entry.error ? "error" : entry.exists ? "exists" : "idle";
     const title = state === "busy" ? "Saving image…" : state === "error" ? entry.error : state === "exists"
       ? entry.policy === "overwrite" ? "Already exists · click to overwrite" : "Already exists · download will be skipped"
-      : "Save image with Download Helper";
+      : "Save image with QDownloadManager";
     if (entry.button.dataset.state !== state) { entry.button.innerHTML = icons[state]; entry.button.dataset.state = state; }
     entry.button.title = title;
     entry.button.setAttribute("aria-label", title);
@@ -94,7 +94,7 @@
         entry.busy = !entry.exists;
       }
       toast(result.state === "skipped" ? `Already exists: ${result.name}. Skipped.`
-        : result.state === "completed" ? `Saved ${result.name}` : "Saving in Download Helper…");
+        : result.state === "completed" ? `Saved ${result.name}` : "Saving in QDownloadManager…");
     } catch (error) {
       if (entry.url === url) { entry.error = error.message; entry.busy = false; }
       toast(error.message);

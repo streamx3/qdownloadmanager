@@ -16,12 +16,37 @@ class BackendTest : public QObject {
         fields.insert("v", 1); fields.insert("id", "test"); fields.insert("type", type); return fields;
     }
     static QString begin(DownloadManager &manager, const QString &name = "image.png", qint64 size = -1) {
-        return manager.handle(request("begin", {{"url", "https://joyreactor.cc/pics/post/image.png"}, {"name", name}, {"total", double(size)}}), "owner").value("jobId").toString();
+        return manager.handle(request("begin", {{"url", "https://reddit.com/image.png"}, {"name", name}, {"total", double(size)}}), "owner").value("jobId").toString();
     }
     static QJsonObject chunk(DownloadManager &manager, const QString &id, const QByteArray &data, qint64 offset = 0) {
         return manager.handle(request("chunk", {{"jobId", id}, {"data", QString::fromLatin1(data.toBase64())}, {"offset", double(offset)}}), "owner");
     }
 private slots:
+    void concurrencyRangePersistsAndSchedulesTwenty() {
+        QTemporaryDir directory;
+        {
+            AppController controller(directory.path());
+            controller.setConcurrency(0); QCOMPARE(controller.concurrency(), 1);
+            controller.setConcurrency(21); QCOMPARE(controller.concurrency(), 20);
+        }
+        AppController restored(directory.path());
+        QCOMPARE(restored.concurrency(), 20);
+        DownloadManager manager(directory.filePath("queue"));
+        manager.setFolder(directory.filePath("files"));
+        manager.setConcurrency(100); // Even a direct caller cannot exceed twenty.
+        QStringList ids;
+        for (int n = 0; n < 21; ++n) ids.append(begin(manager, QString("%1.png").arg(n), 1));
+        QCOMPARE(manager.active().size(), 21);
+        QCOMPARE(manager.queuedCount(), 1);
+        QVERIFY(chunk(manager, ids[19], "x").value("accepted").toBool());
+        QVERIFY(!chunk(manager, ids[20], "x").value("accepted").toBool());
+        manager.setConcurrency(1); // Existing transfers finish; queued ones wait.
+        for (int n = 0; n < 19; ++n) manager.cancel(ids[n]);
+        QCOMPARE(manager.queuedCount(), 1);
+        manager.cancel(ids[19]);
+        QTRY_COMPARE(manager.queuedCount(), 0);
+        QVERIFY(chunk(manager, ids[20], "x").value("accepted").toBool());
+    }
     void progressKeepsStableModelRows() {
         DownloadListModel model;
         QAbstractItemModelTester tester(&model, QAbstractItemModelTester::FailureReportingMode::QtTest);
@@ -59,7 +84,7 @@ private slots:
         QVERIFY(DownloadManager::safeName(QString(200, QChar(0x0416))).toUtf8().size() <= 180);
         QVERIFY(!DownloadManager::validUrl("file:///etc/passwd"));
         QVERIFY(!DownloadManager::validUrl("https://user:pass@example.com/a"));
-        QVERIFY(DownloadManager::validUrl("https://img0.joyreactor.com/a.gif"));
+        QVERIFY(DownloadManager::validUrl("https://i.redd.it/a.gif"));
     }
     void exactTransferAndSkipAvoidsDuplicateWork() {
         QTemporaryDir directory;
@@ -71,7 +96,7 @@ private slots:
         QVERIFY(manager.handle(request("finish", {{"jobId", id}, {"size", data.size()}}), "owner").value("ok").toBool());
         QFile file(directory.filePath("image.gif")); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), data);
         for (const auto &type : {"begin", "enqueue"}) {
-            const auto skipped = manager.handle(request(type, {{"url", "https://joyreactor.cc/image.gif"}}), "owner");
+            const auto skipped = manager.handle(request(type, {{"url", "https://reddit.com/image.gif"}}), "owner");
             QCOMPARE(skipped.value("state").toString(), "skipped");
             QVERIFY(!skipped.contains("jobId"));
         }
@@ -104,7 +129,7 @@ private slots:
         QTemporaryDir directory;
         DownloadManager manager(directory.path()); manager.setFolder(directory.path());
         const auto id = begin(manager, "race.png"); chunk(manager, id, "new");
-        auto response = manager.handle(request("begin", {{"url", "https://joyreactor.com/race.png"}}), "other-owner");
+        auto response = manager.handle(request("begin", {{"url", "https://www.reddit.com/race.png"}}), "other-owner");
         QCOMPARE(response.value("state").toString(), "in_progress"); QVERIFY(!response.contains("jobId"));
         QVERIFY(manager.fileStatus("race.png").value("busy").toBool());
         { QFile file(directory.filePath("race.png")); QVERIFY(file.open(QIODevice::WriteOnly)); file.write("external"); }
@@ -140,7 +165,7 @@ private slots:
         QVERIFY(client.waitForConnected());
         client.write(Protocol::frame(request("hello"))); client.flush();
         QTRY_COMPARE(controller.browserCount(), 1);
-        client.write(Protocol::frame(request("begin", {{"url", "https://joyreactor.cc/active.png"}}))); client.flush();
+        client.write(Protocol::frame(request("begin", {{"url", "https://reddit.com/active.png"}}))); client.flush();
         QTRY_COMPARE(controller.downloadCount(), 1);
         server.reset(); // Previously crashed in QHash during QLocalServer destruction.
         QCOMPARE(controller.browserCount(), 0); QCOMPARE(controller.downloadCount(), 0);
@@ -229,7 +254,7 @@ private slots:
     void setupAndAcceptingGateNewDownloads() {
         QTemporaryDir directory;
         AppController controller(directory.path());
-        const auto payload = request("begin", {{"url", "https://joyreactor.cc/image.png"}});
+        const auto payload = request("begin", {{"url", "https://reddit.com/image.png"}});
         QCOMPARE(controller.handle(payload, "owner").value("error").toObject().value("code").toString(), "setup_required");
         controller.chooseFolder(QUrl::fromLocalFile(directory.filePath("files")));
         controller.finishSetup();

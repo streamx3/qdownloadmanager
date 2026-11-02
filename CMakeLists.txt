@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(QDownloadManager VERSION 0.3.4 LANGUAGES CXX)
+project(QDownloadManager VERSION 0.4.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -36,17 +36,17 @@ qt_add_executable(qdownloadmanager MACOSX_BUNDLE src/app/main.cpp)
 target_link_libraries(qdownloadmanager PRIVATE qdm_backend qdm_chrome Qt6::Quick Qt6::QuickControls2 Qt6::Widgets)
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 set(QDM_QML_FILES qml/Main.qml qml/Theme.qml qml/ActionButton.qml qml/Icon.qml qml/SectionLabel.qml qml/DownloadCard.qml
-    qml/TitleBar.qml qml/WindowControls.qml qml/FrameResizer.qml qml/SettingsGlyph.qml)
-qt_add_qml_module(qdownloadmanager URI DownloadHelper VERSION 1.0 QML_FILES ${QDM_QML_FILES})
+    qml/TitleBar.qml qml/WindowControls.qml qml/FrameResizer.qml qml/DownloadSpinBox.qml)
+qt_add_qml_module(qdownloadmanager URI QDownloadManager VERSION 1.0 QML_FILES ${QDM_QML_FILES})
 qt_add_resources(qdownloadmanager dr_stein_license PREFIX "/licenses/dr_stein" BASE third_party/dr_stein
     FILES third_party/dr_stein/LICENSE)
 set(QDM_ICON_FILES)
 foreach(icon_size 16 32 48 64 128 256 512 1024)
-    list(APPEND QDM_ICON_FILES assets/icons/download-helper-${icon_size}.png)
+    list(APPEND QDM_ICON_FILES assets/icons/qdownloadmanager-${icon_size}.png)
 endforeach()
 qt_add_resources(qdownloadmanager app_icons PREFIX "/icons" BASE assets/icons FILES ${QDM_ICON_FILES})
 if(APPLE)
-    set(QDM_MAC_ICON "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/download-helper.icns")
+    set(QDM_MAC_ICON "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/qdownloadmanager.icns")
     set_source_files_properties("${QDM_MAC_ICON}" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     target_sources(qdownloadmanager PRIVATE "${QDM_MAC_ICON}")
 elseif(WIN32)
@@ -54,9 +54,9 @@ elseif(WIN32)
     target_sources(qdownloadmanager PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/app-icon.rc")
 endif()
 set_target_properties(qdownloadmanager PROPERTIES
-    MACOSX_BUNDLE_BUNDLE_NAME "Download Helper"
+    MACOSX_BUNDLE_BUNDLE_NAME "QDownloadManager"
     MACOSX_BUNDLE_GUI_IDENTIFIER "cc.qdownloadmanager.app"
-    MACOSX_BUNDLE_ICON_FILE "download-helper.icns"
+    MACOSX_BUNDLE_ICON_FILE "qdownloadmanager.icns"
     MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
     MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
     WIN32_EXECUTABLE TRUE)

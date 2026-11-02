@@ -9,7 +9,7 @@ const { default: sharp } = await import(process.env.QDM_SHARP_MODULE || "sharp")
 const root = fileURLToPath(new URL("../", import.meta.url));
 const assets = join(root, "assets/icons"), extension = join(root, "extension/icons");
 await mkdir(extension, { recursive: true });
-const source = await readFile(join(assets, "download-helper.svg"));
+const source = await readFile(join(assets, "qdownloadmanager.svg"));
 // Chrome owns the toolbar spacing. Crop the desktop artwork's 60px transparent
 // inset (including its 4px outline) so the squircle spans the entire PNG canvas.
 const chromeSource = Buffer.from(source.toString().replace('viewBox="0 0 1024 1024"', 'viewBox="60 60 904 904"'));
@@ -18,7 +18,7 @@ const pngs = new Map();
 for (const size of sizes) {
   const png = await sharp(source, { density: 192 }).resize(size, size).png().toBuffer();
   pngs.set(size, png);
-  await writeFile(join(assets, `download-helper-${size}.png`), png);
+  await writeFile(join(assets, `qdownloadmanager-${size}.png`), png);
   if ([16, 32, 48, 128].includes(size)) {
     const chromePng = await sharp(chromeSource, { density: 192 }).resize(size, size).png().toBuffer();
     await writeFile(join(extension, `icon-${size}.png`), chromePng);
@@ -36,16 +36,16 @@ icoSizes.forEach((size, index) => {
   header.writeUInt32LE(png.length, at + 8); header.writeUInt32LE(offset, at + 12);
   offset += png.length;
 });
-await writeFile(join(assets, "download-helper.ico"), Buffer.concat([header, ...icoSizes.map(size => pngs.get(size))]));
+await writeFile(join(assets, "qdownloadmanager.ico"), Buffer.concat([header, ...icoSizes.map(size => pngs.get(size))]));
 if (process.platform !== "darwin") throw new Error("PNG/ICO generated; run on macOS to regenerate the ICNS with iconutil.");
 const temporary = await mkdtemp(join(tmpdir(), "qdm-icons-"));
 try {
-  const iconset = join(temporary, "download-helper.iconset");
+  const iconset = join(temporary, "qdownloadmanager.iconset");
   await mkdir(iconset);
   for (const size of [16, 32, 128, 256, 512]) {
-    for (const scale of [1, 2]) await copyFile(join(assets, `download-helper-${size * scale}.png`),
+    for (const scale of [1, 2]) await copyFile(join(assets, `qdownloadmanager-${size * scale}.png`),
       join(iconset, `icon_${size}x${size}${scale === 2 ? "@2x" : ""}.png`));
   }
-  execFileSync("iconutil", ["-c", "icns", iconset, "-o", join(assets, "download-helper.icns")]);
+  execFileSync("iconutil", ["-c", "icns", iconset, "-o", join(assets, "qdownloadmanager.icns")]);
 } finally { await rm(temporary, { recursive: true, force: true }); }
-console.log("Generated Qt, macOS, Windows, and Chrome icons from download-helper.svg");
+console.log("Generated Qt, macOS, Windows, and Chrome icons from qdownloadmanager.svg");

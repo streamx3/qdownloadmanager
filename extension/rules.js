@@ -1,9 +1,9 @@
 /* Shared by content scripts, the service worker, options, and tests. */
 (() => {
-  const DEFAULTS = Object.freeze({ sites: ["joyreactor.cc", "joyreactor.com", "reddit.com"], imageHosts: ["reactor.cc", "i.redd.it", "preview.redd.it", "external-preview.redd.it"], mode: "browser" });
+  const DEFAULTS = Object.freeze({ sites: ["reddit.com"], imageHosts: ["i.redd.it", "preview.redd.it", "external-preview.redd.it"], mode: "browser" });
   function normalizeHost(value) {
     const raw = String(value).trim();
-    if (!raw || raw.includes("*") || /\s/.test(raw)) throw new Error("Enter a domain such as joyreactor.cc, without wildcards.");
+    if (!raw || raw.includes("*") || /\s/.test(raw)) throw new Error("Enter a domain such as reddit.com, without wildcards.");
     const url = new URL(raw.includes("://") ? raw : `https://${raw}`);
     if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || !url.hostname || url.hostname.includes(":"))
       throw new Error("Use an HTTP or HTTPS website domain.");
@@ -32,7 +32,7 @@
     } catch { return null; }
   }
   function imageLink(url) {
-    return url && (/\.(?:jpe?g|png|gif|webp|avif|bmp|svg)$/i.test(url.pathname) || /\/pics\/post\/full\//.test(url.pathname));
+    return url && (/\.(?:jpe?g|png|gif|webp|avif|bmp|svg)$/i.test(url.pathname));
   }
   function redditMedia(url) {
     if (url && matchesHost(url.hostname, "reddit.com") && /^\/media\/?$/.test(url.pathname)) {

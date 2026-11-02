@@ -2,7 +2,7 @@
 
 Status: **design for review; not connected to the downloader**. The runnable
 [schema](schema.sql) and [contract tests](../../tests/database_test.py) describe a
-catalog shared by Download Helper, a future deduplicator, and a library manager.
+catalog shared by QDownloadManager, a future deduplicator, and a library manager.
 The current release checks names directly on disk and keeps its existing JSON
 history. There is no background import, hashing, or new database in the app yet.
 

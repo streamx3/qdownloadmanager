@@ -50,7 +50,7 @@ QtObject {
     function accentStep(step) { return accentRamp[Math.max(0, Math.min(8, step / 100 - 1))] }
     function neutralStep(step) { return neutralRamp[Math.max(0, Math.min(8, step / 100 - 1))] }
 
-    // Download Helper's semantic roles, drawn from the same Dr Stein tokens.
+    // QDownloadManager's semantic roles, drawn from the same Dr Stein tokens.
     readonly property color background: g.bg
     readonly property color bottom: g.bg
     readonly property color surface: g.surface

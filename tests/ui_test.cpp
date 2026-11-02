@@ -127,7 +127,7 @@ private slots:
         QCOMPARE(QColor(appearance.value("colors").toObject().value("bg").toString()), window->property("themeBackground").value<QColor>());
     }
     void headerGlyphsAreCentered() {
-        backend->setColorScheme("light"); // Exercise the crescent as well as + and gear.
+        backend->setColorScheme("light"); // Exercise the crescent as well as + and menu.
         QTest::qWait(60);
         for (const auto &name : {"addLinkButton", "themeToggle", "settingsButton"}) {
             auto button = item(name); QVERIFY(button);
@@ -140,6 +140,41 @@ private slots:
         if (!captureDir.isEmpty()) {
             QVERIFY(QDir().mkpath(captureDir));
             QVERIFY(window->grabWindow().save(QDir(captureDir).filePath("header-glyphs.png")));
+        }
+    }
+    void concurrencySpinBoxValidatesAndCommits() {
+        window->setHeight(1500);
+        click("settingsButton");
+        auto spin = item("downloadConcurrency"); QVERIFY(spin);
+        auto input = item("concurrencyInput"); QVERIFY(input);
+        auto enter = [&](const QString &text, bool returnKey = true) {
+            input->forceActiveFocus();
+            QMetaObject::invokeMethod(input, "selectAll");
+            QTest::keyClick(window, Qt::Key_Backspace);
+            for (const auto ch : text) QTest::keyClick(window, Qt::Key(ch.toUpper().unicode()));
+            if (returnKey) QTest::keyClick(window, Qt::Key_Return);
+            else item("themeToggle")->forceActiveFocus();
+        };
+        enter("20"); QTRY_COMPARE(backend->concurrency(), 20);
+        click("concurrencyIncrease"); QCOMPARE(backend->concurrency(), 20);
+        click("concurrencyDecrease"); QCOMPARE(backend->concurrency(), 19);
+        enter("7", false); QTRY_COMPARE(backend->concurrency(), 7);
+        for (const auto &invalid : {"21", "0", "", "abc"}) {
+            enter(invalid);
+            QCOMPARE(backend->concurrency(), 7);
+            QCOMPARE(input->property("text").toString(), "7");
+        }
+        enter("1"); QCOMPARE(backend->concurrency(), 1);
+        click("concurrencyDecrease"); QCOMPARE(backend->concurrency(), 1);
+        input->forceActiveFocus();
+        QTest::keyClick(window, Qt::Key_Up); QCOMPARE(backend->concurrency(), 2);
+        backend->setConcurrency(12);
+        QTRY_COMPARE(spin->property("value").toInt(), 12);
+        QCOMPARE(input->property("text").toString(), "12");
+        const auto captureDir = qEnvironmentVariable("QDM_UI_CAPTURE_DIR");
+        if (!captureDir.isEmpty()) {
+            QVERIFY(QDir().mkpath(captureDir));
+            QVERIFY(window->grabWindow().save(QDir(captureDir).filePath("settings-spinbox.png")));
         }
     }
     void titleBarHasRoomForNativeControlsAndFallbackPersists() {

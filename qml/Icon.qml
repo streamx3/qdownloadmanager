@@ -6,14 +6,6 @@ Canvas {
     property color color: Theme.muted
     implicitWidth: 18
     implicitHeight: 18
-    SettingsGlyph {
-        visible: root.name === "settings"
-        color: root.color
-        scale: Math.min(root.width, root.height) / 50
-        transformOrigin: Item.TopLeft
-        x: (root.width - 50 * scale) / 2
-        y: (root.height - 50 * scale) / 2
-    }
     onNameChanged: requestPaint()
     onColorChanged: requestPaint()
     onWidthChanged: requestPaint()
@@ -21,10 +13,10 @@ Canvas {
     onPaint: {
         const c = getContext("2d")
         c.reset(); c.scale(width / 24, height / 24)
-        if (name === "settings") return
         c.strokeStyle = color; c.lineWidth = 1.65; c.lineCap = "round"; c.lineJoin = "round"
         function line(points) { c.beginPath(); c.moveTo(points[0], points[1]); for (let i = 2; i < points.length; i += 2) c.lineTo(points[i], points[i+1]); c.stroke() }
         if (name === "download") { line([12,3,12,16]); line([7,11,12,16,17,11]); line([4,19,20,19]) }
+        else if (name === "settings") { line([4,6,20,6]); line([4,12,20,12]); line([4,18,20,18]) }
         else if (name === "close") { line([6,6,18,18]); line([18,6,6,18]) }
         else if (name === "minimize") line([5,12,19,12])
         else if (name === "maximize") line([5,5,19,5,19,19,5,19,5,5])

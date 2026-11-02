@@ -7,7 +7,12 @@
 
 QString LocalEndpoint::dataDirectory()
 {
-    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    const auto current = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    // Existing installations keep their data and IPC/lock identity. Both the
+    // app and bridge must select the same directory, including during upgrades.
+    const auto legacy = QDir(QFileInfo(current).absolutePath()).filePath("DownloadHelper");
+    if (QFileInfo::exists(QDir(legacy).filePath("settings.ini"))) return legacy;
+    return current;
 }
 
 bool LocalEndpoint::prepareDirectory(const QString &path)
